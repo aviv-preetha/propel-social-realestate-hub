@@ -111,6 +111,59 @@ export function usePosts() {
     }
   };
 
+  const createPost = async (content: string, images?: string[], propertyId?: string) => {
+    if (!user || !profile?.id) {
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to create posts",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('posts')
+        .insert({
+          user_id: profile.id,
+          content,
+          images: images || null,
+          property_id: propertyId || null
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      const newPost: Post = {
+        id: data.id,
+        userId: data.user_id,
+        content: data.content,
+        images: data.images || undefined,
+        propertyId: data.property_id || undefined,
+        timestamp: new Date(data.created_at || ''),
+        likes: [],
+        comments: []
+      };
+
+      setPosts(prev => [newPost, ...prev]);
+
+      toast({
+        title: "Post created!",
+        description: "Your post has been shared",
+      });
+
+      return newPost;
+    } catch (error) {
+      console.error('Error creating post:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create post",
+        variant: "destructive",
+      });
+    }
+  };
+
   const toggleLike = async (postId: string) => {
     if (!user || !profile?.id) {
       toast({
@@ -230,6 +283,7 @@ export function usePosts() {
   return {
     posts,
     loading,
+    createPost,
     toggleLike,
     addComment,
     refetch: fetchPosts

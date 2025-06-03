@@ -3,6 +3,8 @@ import React, { useState } from 'react';
 import { Edit, MapPin, Heart, Star, Building, Camera } from 'lucide-react';
 import { useProfile } from '@/hooks/useProfile';
 import { useAuth } from '@/hooks/useAuth';
+import { useConnections } from '@/hooks/useConnections';
+import { useProperties } from '@/hooks/useProperties';
 import AvatarWithBadge from './AvatarWithBadge';
 import ImageUpload from './ImageUpload';
 import EditProfileModal from './EditProfileModal';
@@ -11,6 +13,8 @@ import { useToast } from '@/hooks/use-toast';
 const Profile: React.FC = () => {
   const { user, signOut } = useAuth();
   const { profile, updateProfile } = useProfile();
+  const { connections } = useConnections();
+  const { shortlistedProperties } = useProperties();
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const { toast } = useToast();
@@ -146,14 +150,14 @@ const Profile: React.FC = () => {
           <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
             <Heart className="h-6 w-6 text-green-600" />
           </div>
-          <h3 className="text-2xl font-bold text-gray-900">0</h3>
+          <h3 className="text-2xl font-bold text-gray-900">{shortlistedProperties.length}</h3>
           <p className="text-gray-600">Shortlisted</p>
         </div>
         <div className="bg-white rounded-xl shadow-sm border p-6 text-center">
           <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-3">
             <Star className="h-6 w-6 text-yellow-600" />
           </div>
-          <h3 className="text-2xl font-bold text-gray-900">0</h3>
+          <h3 className="text-2xl font-bold text-gray-900">{connections.length}</h3>
           <p className="text-gray-600">Connections</p>
         </div>
       </div>

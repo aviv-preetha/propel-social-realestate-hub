@@ -1,11 +1,20 @@
 
 import React, { useState } from 'react';
-import { UserPlus, Users, MessageCircle, Star } from 'lucide-react';
+import { UserPlus, Users, MessageCircle, Star, Check, Clock } from 'lucide-react';
 import UserBadge from './UserBadge';
 import { useConnections } from '@/hooks/useConnections';
 
 const Network: React.FC = () => {
-  const { connections, suggestions, loading, connect, disconnect } = useConnections();
+  const { 
+    connections, 
+    suggestions, 
+    loading, 
+    connect, 
+    acceptConnection,
+    disconnect, 
+    getConnectionStatus,
+    getPendingConnectionId
+  } = useConnections();
   const [activeTab, setActiveTab] = useState<'discover' | 'connections'>('discover');
 
   if (loading) {
@@ -17,6 +26,58 @@ const Network: React.FC = () => {
       </div>
     );
   }
+
+  const renderConnectionButton = (user: any) => {
+    const status = getConnectionStatus(user.id);
+    
+    switch (status) {
+      case 'connected':
+        return (
+          <button
+            onClick={() => disconnect(user.id)}
+            className="text-sm text-red-600 hover:text-red-800 transition-colors"
+          >
+            Disconnect
+          </button>
+        );
+      
+      case 'pending':
+        return (
+          <button
+            disabled
+            className="flex items-center space-x-2 bg-gray-100 text-gray-500 px-4 py-2 rounded-lg font-medium cursor-not-allowed"
+          >
+            <Clock className="h-4 w-4" />
+            <span>Pending</span>
+          </button>
+        );
+      
+      case 'received':
+        return (
+          <button
+            onClick={() => {
+              const connectionId = getPendingConnectionId(user.id);
+              if (connectionId) acceptConnection(connectionId);
+            }}
+            className="flex items-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-700 transition-colors"
+          >
+            <Check className="h-4 w-4" />
+            <span>Accept</span>
+          </button>
+        );
+      
+      default:
+        return (
+          <button
+            onClick={() => connect(user.id)}
+            className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+          >
+            <UserPlus className="h-4 w-4" />
+            <span>Connect</span>
+          </button>
+        );
+    }
+  };
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -73,13 +134,7 @@ const Network: React.FC = () => {
                     )}
                   </div>
                   <div className="flex flex-col space-y-2">
-                    <button
-                      onClick={() => connect(user.user_id)}
-                      className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors"
-                    >
-                      <UserPlus className="h-4 w-4" />
-                      <span>Connect</span>
-                    </button>
+                    {renderConnectionButton(user)}
                     <button className="flex items-center space-x-2 border border-gray-300 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors">
                       <MessageCircle className="h-4 w-4" />
                       <span>Message</span>
@@ -129,7 +184,7 @@ const Network: React.FC = () => {
                       </button>
                     )}
                     <button
-                      onClick={() => disconnect(user.user_id)}
+                      onClick={() => disconnect(user.id)}
                       className="text-sm text-red-600 hover:text-red-800 transition-colors"
                     >
                       Disconnect
