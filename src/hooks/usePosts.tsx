@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
@@ -164,6 +163,85 @@ export function usePosts() {
     }
   };
 
+  const updatePost = async (postId: string, content: string) => {
+    if (!user || !profile?.id) {
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to update posts",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('posts')
+        .update({
+          content,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', postId)
+        .eq('user_id', profile.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setPosts(prev => prev.map(p => 
+        p.id === postId 
+          ? { ...p, content: data.content }
+          : p
+      ));
+
+      toast({
+        title: "Post updated!",
+        description: "Your post has been updated",
+      });
+    } catch (error) {
+      console.error('Error updating post:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update post",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const deletePost = async (postId: string) => {
+    if (!user || !profile?.id) {
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to delete posts",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('posts')
+        .delete()
+        .eq('id', postId)
+        .eq('user_id', profile.id);
+
+      if (error) throw error;
+
+      setPosts(prev => prev.filter(p => p.id !== postId));
+
+      toast({
+        title: "Post deleted!",
+        description: "Your post has been deleted",
+      });
+    } catch (error) {
+      console.error('Error deleting post:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete post",
+        variant: "destructive",
+      });
+    }
+  };
+
   const toggleLike = async (postId: string) => {
     if (!user || !profile?.id) {
       toast({
@@ -284,6 +362,8 @@ export function usePosts() {
     posts,
     loading,
     createPost,
+    updatePost,
+    deletePost,
     toggleLike,
     addComment,
     refetch: fetchPosts
