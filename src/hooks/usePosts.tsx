@@ -22,6 +22,7 @@ export interface Post {
   images?: string[];
   propertyId?: string;
   timestamp: Date;
+  updatedAt?: Date;
   likes: string[];
   comments: Comment[];
 }
@@ -95,6 +96,7 @@ export function usePosts() {
         images: post.images || undefined,
         propertyId: post.property_id || undefined,
         timestamp: new Date(post.created_at || ''),
+        updatedAt: post.updated_at ? new Date(post.updated_at) : undefined,
         likes: likesByPost[post.id] || [],
         comments: commentsByPost[post.id] || []
       }));
@@ -141,6 +143,7 @@ export function usePosts() {
         images: data.images || undefined,
         propertyId: data.property_id || undefined,
         timestamp: new Date(data.created_at || ''),
+        updatedAt: data.updated_at ? new Date(data.updated_at) : undefined,
         likes: [],
         comments: []
       };
@@ -189,7 +192,7 @@ export function usePosts() {
 
       setPosts(prev => prev.map(p => 
         p.id === postId 
-          ? { ...p, content: data.content }
+          ? { ...p, content: data.content, updatedAt: new Date(data.updated_at || '') }
           : p
       ));
 

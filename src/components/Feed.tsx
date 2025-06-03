@@ -266,6 +266,13 @@ const Feed: React.FC = () => {
     return 'Just now';
   };
 
+  const isPostEdited = (post: any) => {
+    // Check if the post has been edited by comparing created_at and updated_at
+    const createdAt = new Date(post.timestamp).getTime();
+    const updatedAt = new Date(post.updatedAt || post.timestamp).getTime();
+    return updatedAt > createdAt + 1000; // Allow 1 second difference for database timing
+  };
+
   if (loading) {
     return (
       <div className="max-w-2xl mx-auto space-y-6">
@@ -403,6 +410,12 @@ const Feed: React.FC = () => {
                     <UserBadge badge={author.badge} />
                     <span className="text-gray-500 text-sm">•</span>
                     <p className="text-gray-500 text-sm">{formatTimestamp(post.timestamp)}</p>
+                    {isPostEdited(post) && (
+                      <>
+                        <span className="text-gray-500 text-sm">•</span>
+                        <span className="text-gray-400 text-xs italic">edited</span>
+                      </>
+                    )}
                   </div>
                 </div>
                 {isAuthor ? (
