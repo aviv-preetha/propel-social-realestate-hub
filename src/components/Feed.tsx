@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Heart, MessageCircle, Share, Send, MoreHorizontal } from 'lucide-react';
+import { Heart, MessageCircle, Share, Send, MoreHorizontal, Edit, Trash2 } from 'lucide-react';
 import UserBadge from './UserBadge';
 import UserMention from './UserMention';
 import ImageUpload from './ImageUpload';
@@ -8,6 +8,23 @@ import { useProfile } from '@/hooks/useProfile';
 import { useConnections } from '@/hooks/useConnections';
 import { supabase } from '@/integrations/supabase/client';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from './ui/carousel';
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger 
+} from './ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from './ui/alert-dialog';
 
 interface ProfileData {
   id: string;
@@ -17,7 +34,7 @@ interface ProfileData {
 }
 
 const Feed: React.FC = () => {
-  const { posts, loading, toggleLike, addComment, createPost } = usePosts();
+  const { posts, loading, toggleLike, addComment, createPost, updatePost, deletePost } = usePosts();
   const { profile } = useProfile();
   const { connections } = useConnections();
   const [newComments, setNewComments] = useState<Record<string, string>>({});
@@ -27,6 +44,8 @@ const Feed: React.FC = () => {
   const [profileCache, setProfileCache] = useState<Record<string, ProfileData>>({});
   const [taggedUsers, setTaggedUsers] = useState<Record<string, string[]>>({});
   const [postTaggedUsers, setPostTaggedUsers] = useState<string[]>([]);
+  const [editingPost, setEditingPost] = useState<string | null>(null);
+  const [editContent, setEditContent] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const getUserById = async (userId: string): Promise<ProfileData> => {
@@ -111,6 +130,28 @@ const Feed: React.FC = () => {
     setNewPostImages([]);
     setUploadingImages([]);
     setPostTaggedUsers([]);
+  };
+
+  const handleEditPost = (postId: string, currentContent: string) => {
+    setEditingPost(postId);
+    setEditContent(currentContent);
+  };
+
+  const handleSaveEdit = async (postId: string) => {
+    if (!editContent.trim()) return;
+    
+    await updatePost(postId, editContent.trim());
+    setEditingPost(null);
+    setEditContent('');
+  };
+
+  const handleCancelEdit = () => {
+    setEditingPost(null);
+    setEditContent('');
+  };
+
+  const handleDeletePost = async (postId: string) => {
+    await deletePost(postId);
   };
 
   const handlePhotoClick = () => {
@@ -344,6 +385,7 @@ const Feed: React.FC = () => {
         }
 
         const isLiked = profile ? post.likes.includes(profile.id) : false;
+        const isAuthor = profile?.id === post.userId;
 
         return (
           <div key={post.id} className="bg-white rounded-xl shadow-sm border">
@@ -363,15 +405,84 @@ const Feed: React.FC = () => {
                     <p className="text-gray-500 text-sm">{formatTimestamp(post.timestamp)}</p>
                   </div>
                 </div>
-                <button className="text-gray-400 hover:text-gray-600">
-                  <MoreHorizontal className="h-5 w-5" />
-                </button>
+                {isAuthor ? (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button className="text-gray-400 hover:text-gray-600">
+                        <MoreHorizontal className="h-5 w-5" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => handleEditPost(post.id, post.content)}>
+                        <Edit className="h-4 w-4 mr-2" />
+                        Edit
+                      </DropdownMenuItem>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <DropdownMenuItem 
+                            className="text-red-600 focus:text-red-600 focus:bg-red-50"
+                            onSelect={(e) => e.preventDefault()}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Post</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to delete this post? This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction 
+                              onClick={() => handleDeletePost(post.id)}
+                              className="bg-red-600 hover:bg-red-700"
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                ) : (
+                  <button className="text-gray-400 hover:text-gray-600">
+                    <MoreHorizontal className="h-5 w-5" />
+                  </button>
+                )}
               </div>
             </div>
 
             {/* Post Content */}
             <div className="px-6 pb-4">
-              <p className="text-gray-800 leading-relaxed text-left">{renderTextWithMentions(post.content)}</p>
+              {editingPost === post.id ? (
+                <div className="space-y-2">
+                  <textarea
+                    value={editContent}
+                    onChange={(e) => setEditContent(e.target.value)}
+                    className="w-full p-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-left min-h-[100px]"
+                    placeholder="Edit your post..."
+                  />
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => handleSaveEdit(post.id)}
+                      className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
+                    >
+                      Save
+                    </button>
+                    <button
+                      onClick={handleCancelEdit}
+                      className="px-3 py-1 bg-gray-300 text-gray-700 rounded text-sm hover:bg-gray-400"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-gray-800 leading-relaxed text-left">{renderTextWithMentions(post.content)}</p>
+              )}
             </div>
 
             {/* Post Images */}
