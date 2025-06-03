@@ -65,7 +65,7 @@ export const mockProperties: Property[] = [
       'https://images.unsplash.com/photo-1721322800607-8c38375eef04?w=800&h=600&fit=crop',
       'https://images.unsplash.com/photo-1487958449943-2429e8be8625?w=800&h=600&fit=crop'
     ],
-    ownerId: '2',
+    owner_id: '2',
     features: ['Balcony', 'Elevator', 'Pet Friendly', 'Furnished']
   },
   {
@@ -82,7 +82,7 @@ export const mockProperties: Property[] = [
       'https://images.unsplash.com/photo-1524230572899-a752b3835840?w=800&h=600&fit=crop',
       'https://images.unsplash.com/photo-1492321936769-b49830bc1d1e?w=800&h=600&fit=crop'
     ],
-    ownerId: '1',
+    owner_id: '1',
     features: ['Pool', 'Sea View', 'Garden', 'Garage', 'Security System']
   },
   {
@@ -98,7 +98,7 @@ export const mockProperties: Property[] = [
     images: [
       'https://images.unsplash.com/photo-1472396961693-142e6e269027?w=800&h=600&fit=crop'
     ],
-    ownerId: '2',
+    owner_id: '2',
     features: ['Furnished', 'High-speed Internet', 'Near Metro']
   },
   {
@@ -114,7 +114,7 @@ export const mockProperties: Property[] = [
     images: [
       'https://images.unsplash.com/photo-1487958449943-2429e8be8625?w=800&h=600&fit=crop'
     ],
-    ownerId: '4',
+    owner_id: '4',
     features: ['Garden', 'Garage', 'Near Schools', 'Quiet Neighborhood']
   }
 ];
