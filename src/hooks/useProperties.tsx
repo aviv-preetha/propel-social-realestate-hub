@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
+import { useProfile } from './useProfile';
 import { useToast } from '@/hooks/use-toast';
 
 export interface DatabaseProperty {
@@ -38,6 +39,7 @@ export interface Property {
 
 export function useProperties() {
   const { user } = useAuth();
+  const { profile } = useProfile();
   const [properties, setProperties] = useState<Property[]>([]);
   const [shortlistedProperties, setShortlistedProperties] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -80,13 +82,13 @@ export function useProperties() {
   };
 
   const fetchShortlistedProperties = async () => {
-    if (!user) return;
+    if (!profile?.id) return;
 
     try {
       const { data, error } = await supabase
         .from('shortlisted_properties')
         .select('property_id')
-        .eq('user_id', user.id);
+        .eq('user_id', profile.id);
 
       if (error) throw error;
 
@@ -97,7 +99,7 @@ export function useProperties() {
   };
 
   const toggleShortlist = async (propertyId: string) => {
-    if (!user) {
+    if (!user || !profile?.id) {
       toast({
         title: "Authentication required",
         description: "Please sign in to shortlist properties",
@@ -113,7 +115,7 @@ export function useProperties() {
         const { error } = await supabase
           .from('shortlisted_properties')
           .delete()
-          .eq('user_id', user.id)
+          .eq('user_id', profile.id)
           .eq('property_id', propertyId);
 
         if (error) throw error;
@@ -127,7 +129,7 @@ export function useProperties() {
         const { error } = await supabase
           .from('shortlisted_properties')
           .insert({
-            user_id: user.id,
+            user_id: profile.id,
             property_id: propertyId
           });
 
@@ -153,14 +155,14 @@ export function useProperties() {
     const loadData = async () => {
       setLoading(true);
       await fetchProperties();
-      if (user) {
+      if (profile?.id) {
         await fetchShortlistedProperties();
       }
       setLoading(false);
     };
 
     loadData();
-  }, [user]);
+  }, [profile?.id]);
 
   return {
     properties,

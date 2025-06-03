@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
+import { useProfile } from './useProfile';
 import { useToast } from '@/hooks/use-toast';
 
 export interface Profile {
@@ -18,33 +19,34 @@ export interface Profile {
 
 export function useConnections() {
   const { user } = useAuth();
+  const { profile } = useProfile();
   const [connections, setConnections] = useState<Profile[]>([]);
   const [suggestions, setSuggestions] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
   const fetchConnections = async () => {
-    if (!user) return;
+    if (!profile?.id) return;
 
     try {
-      // First, get the user IDs of connected users
+      // First, get the profile IDs of connected users
       const { data: connectionsData, error: connectionsError } = await supabase
         .from('connections')
         .select('connected_user_id')
-        .eq('user_id', user.id)
+        .eq('user_id', profile.id)
         .eq('status', 'accepted');
 
       if (connectionsError) throw connectionsError;
 
-      const connectedUserIds = connectionsData.map(conn => conn.connected_user_id);
+      const connectedProfileIds = connectionsData.map(conn => conn.connected_user_id);
 
       // Then fetch the profiles for those users
       let connectedProfiles: Profile[] = [];
-      if (connectedUserIds.length > 0) {
+      if (connectedProfileIds.length > 0) {
         const { data: profilesData, error: profilesError } = await supabase
           .from('profiles')
           .select('*')
-          .in('user_id', connectedUserIds);
+          .in('id', connectedProfileIds);
 
         if (profilesError) throw profilesError;
         connectedProfiles = profilesData as Profile[];
@@ -52,13 +54,13 @@ export function useConnections() {
 
       setConnections(connectedProfiles);
 
-      // Fetch all profiles except user and existing connections
-      const excludeIds = [user.id, ...connectedUserIds];
+      // Fetch all profiles except current user and existing connections
+      const excludeIds = [profile.id, ...connectedProfileIds];
 
       const { data: allProfiles, error: profilesError } = await supabase
         .from('profiles')
         .select('*')
-        .not('user_id', 'in', `(${excludeIds.join(',')})`);
+        .not('id', 'in', `(${excludeIds.join(',')})`);
 
       if (profilesError) throw profilesError;
 
@@ -73,8 +75,8 @@ export function useConnections() {
     }
   };
 
-  const connect = async (targetUserId: string) => {
-    if (!user) {
+  const connect = async (targetProfileId: string) => {
+    if (!user || !profile?.id) {
       toast({
         title: "Authentication required",
         description: "Please sign in to connect with others",
@@ -87,8 +89,8 @@ export function useConnections() {
       const { error } = await supabase
         .from('connections')
         .insert({
-          user_id: user.id,
-          connected_user_id: targetUserId,
+          user_id: profile.id,
+          connected_user_id: targetProfileId,
           status: 'accepted' // For simplicity, auto-accept connections
         });
 
@@ -98,16 +100,16 @@ export function useConnections() {
       await supabase
         .from('connections')
         .insert({
-          user_id: targetUserId,
-          connected_user_id: user.id,
+          user_id: targetProfileId,
+          connected_user_id: profile.id,
           status: 'accepted'
         });
 
       // Move from suggestions to connections
-      const connectedProfile = suggestions.find(p => p.user_id === targetUserId);
+      const connectedProfile = suggestions.find(p => p.id === targetProfileId);
       if (connectedProfile) {
         setConnections(prev => [...prev, connectedProfile]);
-        setSuggestions(prev => prev.filter(p => p.user_id !== targetUserId));
+        setSuggestions(prev => prev.filter(p => p.id !== targetProfileId));
       }
 
       toast({
@@ -124,27 +126,27 @@ export function useConnections() {
     }
   };
 
-  const disconnect = async (targetUserId: string) => {
-    if (!user) return;
+  const disconnect = async (targetProfileId: string) => {
+    if (!profile?.id) return;
 
     try {
       // Remove both directions of the connection
       await supabase
         .from('connections')
         .delete()
-        .eq('user_id', user.id)
-        .eq('connected_user_id', targetUserId);
+        .eq('user_id', profile.id)
+        .eq('connected_user_id', targetProfileId);
 
       await supabase
         .from('connections')
         .delete()
-        .eq('user_id', targetUserId)
-        .eq('connected_user_id', user.id);
+        .eq('user_id', targetProfileId)
+        .eq('connected_user_id', profile.id);
 
       // Move from connections to suggestions
-      const disconnectedProfile = connections.find(p => p.user_id === targetUserId);
+      const disconnectedProfile = connections.find(p => p.id === targetProfileId);
       if (disconnectedProfile) {
-        setConnections(prev => prev.filter(p => p.user_id !== targetUserId));
+        setConnections(prev => prev.filter(p => p.id !== targetProfileId));
         setSuggestions(prev => [...prev, disconnectedProfile]);
       }
 
@@ -170,7 +172,7 @@ export function useConnections() {
     };
 
     loadConnections();
-  }, [user]);
+  }, [profile?.id]);
 
   return {
     connections,

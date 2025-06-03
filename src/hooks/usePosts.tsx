@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
+import { useProfile } from './useProfile';
 import { useToast } from '@/hooks/use-toast';
 
 export interface DatabasePost {
@@ -35,6 +36,7 @@ export interface Comment {
 
 export function usePosts() {
   const { user } = useAuth();
+  const { profile } = useProfile();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
@@ -110,7 +112,7 @@ export function usePosts() {
   };
 
   const toggleLike = async (postId: string) => {
-    if (!user) {
+    if (!user || !profile?.id) {
       toast({
         title: "Authentication required",
         description: "Please sign in to like posts",
@@ -122,7 +124,7 @@ export function usePosts() {
     const post = posts.find(p => p.id === postId);
     if (!post) return;
 
-    const isLiked = post.likes.includes(user.id);
+    const isLiked = post.likes.includes(profile.id);
 
     try {
       if (isLiked) {
@@ -130,13 +132,13 @@ export function usePosts() {
           .from('post_likes')
           .delete()
           .eq('post_id', postId)
-          .eq('user_id', user.id);
+          .eq('user_id', profile.id);
 
         if (error) throw error;
 
         setPosts(prev => prev.map(p => 
           p.id === postId 
-            ? { ...p, likes: p.likes.filter(id => id !== user.id) }
+            ? { ...p, likes: p.likes.filter(id => id !== profile.id) }
             : p
         ));
       } else {
@@ -144,14 +146,14 @@ export function usePosts() {
           .from('post_likes')
           .insert({
             post_id: postId,
-            user_id: user.id
+            user_id: profile.id
           });
 
         if (error) throw error;
 
         setPosts(prev => prev.map(p => 
           p.id === postId 
-            ? { ...p, likes: [...p.likes, user.id] }
+            ? { ...p, likes: [...p.likes, profile.id] }
             : p
         ));
       }
@@ -166,7 +168,7 @@ export function usePosts() {
   };
 
   const addComment = async (postId: string, content: string) => {
-    if (!user) {
+    if (!user || !profile?.id) {
       toast({
         title: "Authentication required",
         description: "Please sign in to comment",
@@ -180,7 +182,7 @@ export function usePosts() {
         .from('post_comments')
         .insert({
           post_id: postId,
-          user_id: user.id,
+          user_id: profile.id,
           content
         })
         .select()
