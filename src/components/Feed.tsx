@@ -118,8 +118,8 @@ const Feed: React.FC = () => {
   };
 
   const renderTextWithMentions = (text: string) => {
-    // Updated regex to match @ followed by any word characters and spaces until the next @ or end
-    const mentionRegex = /@([a-zA-Z\s]+?)(?=\s@|$|\s[^@])/g;
+    // Improved regex to match @ followed by names with spaces, stopping at word boundaries
+    const mentionRegex = /@([a-zA-Z]+(?:\s+[a-zA-Z]+)*)/g;
     const parts = [];
     let lastIndex = 0;
     let match;
@@ -133,7 +133,7 @@ const Feed: React.FC = () => {
       // Add the mention with highlighting
       parts.push(
         <span key={match.index} className="text-blue-600 font-medium bg-blue-50 px-1 rounded">
-          @{match[1].trim()}
+          @{match[1]}
         </span>
       );
       

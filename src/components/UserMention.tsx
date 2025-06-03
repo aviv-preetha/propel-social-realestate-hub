@@ -25,7 +25,7 @@ const UserMention: React.FC<UserMentionProps> = ({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    if (mentionQuery.length >= 0) { // Show suggestions immediately after @
+    if (mentionQuery.length > 0 || (mentionQuery === '' && showSuggestions)) {
       const filtered = connections.filter(connection => 
         connection.name.toLowerCase().includes(mentionQuery.toLowerCase())
       ).slice(0, 5);
@@ -35,7 +35,7 @@ const UserMention: React.FC<UserMentionProps> = ({
       setFilteredConnections([]);
       setShowSuggestions(false);
     }
-  }, [mentionQuery, connections]);
+  }, [mentionQuery, connections, showSuggestions]);
 
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newValue = e.target.value;
@@ -50,6 +50,7 @@ const UserMention: React.FC<UserMentionProps> = ({
     
     if (mentionMatch) {
       setMentionQuery(mentionMatch[1]);
+      setShowSuggestions(true);
     } else {
       setMentionQuery('');
       setShowSuggestions(false);
