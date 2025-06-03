@@ -7,6 +7,7 @@ import { usePosts } from '@/hooks/usePosts';
 import { useProfile } from '@/hooks/useProfile';
 import { useConnections } from '@/hooks/useConnections';
 import { supabase } from '@/integrations/supabase/client';
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from './ui/carousel';
 
 interface ProfileData {
   id: string;
@@ -117,38 +118,42 @@ const Feed: React.FC = () => {
   };
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
 
-    // Add to uploading images for immediate preview
-    setUploadingImages(prev => [...prev, file]);
+    // Convert FileList to array and add to uploading images
+    const fileArray = Array.from(files);
+    setUploadingImages(prev => [...prev, ...fileArray]);
 
-    try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Math.random()}.${fileExt}`;
-      const filePath = `${fileName}`;
+    // Upload each file
+    for (const file of fileArray) {
+      try {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Math.random()}.${fileExt}`;
+        const filePath = `${fileName}`;
 
-      const { data, error } = await supabase.storage
-        .from('post-images')
-        .upload(filePath, file);
+        const { data, error } = await supabase.storage
+          .from('post-images')
+          .upload(filePath, file);
 
-      if (error) {
-        console.error('Error uploading file:', error);
-        // Remove from uploading images on error
+        if (error) {
+          console.error('Error uploading file:', error);
+          // Remove from uploading images on error
+          setUploadingImages(prev => prev.filter(f => f !== file));
+          continue;
+        }
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('post-images')
+          .getPublicUrl(filePath);
+
+        setNewPostImages(prev => [...prev, publicUrl]);
+        // Remove from uploading images after successful upload
         setUploadingImages(prev => prev.filter(f => f !== file));
-        return;
+      } catch (error) {
+        console.error('Error uploading file:', error);
+        setUploadingImages(prev => prev.filter(f => f !== file));
       }
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('post-images')
-        .getPublicUrl(filePath);
-
-      setNewPostImages(prev => [...prev, publicUrl]);
-      // Remove from uploading images after successful upload
-      setUploadingImages(prev => prev.filter(f => f !== file));
-    } catch (error) {
-      console.error('Error uploading file:', error);
-      setUploadingImages(prev => prev.filter(f => f !== file));
     }
 
     // Reset file input
@@ -301,6 +306,7 @@ const Feed: React.FC = () => {
                     accept="image/*"
                     onChange={handleFileSelect}
                     className="hidden"
+                    multiple
                   />
                   <button 
                     onClick={handlePhotoClick}
@@ -371,16 +377,29 @@ const Feed: React.FC = () => {
             {/* Post Images */}
             {post.images && post.images.length > 0 && (
               <div className="px-6 pb-4">
-                <div className="grid grid-cols-1 gap-2">
-                  {post.images.map((image, index) => (
-                    <img
-                      key={index}
-                      src={image}
-                      alt=""
-                      className="w-full h-64 object-cover rounded-lg"
-                    />
-                  ))}
-                </div>
+                {post.images.length === 1 ? (
+                  <img
+                    src={post.images[0]}
+                    alt=""
+                    className="w-full h-64 object-cover rounded-lg"
+                  />
+                ) : (
+                  <Carousel className="w-full">
+                    <CarouselContent>
+                      {post.images.map((image, index) => (
+                        <CarouselItem key={index}>
+                          <img
+                            src={image}
+                            alt=""
+                            className="w-full h-64 object-cover rounded-lg"
+                          />
+                        </CarouselItem>
+                      ))}
+                    </CarouselContent>
+                    <CarouselPrevious className="left-2" />
+                    <CarouselNext className="right-2" />
+                  </Carousel>
+                )}
               </div>
             )}
 
