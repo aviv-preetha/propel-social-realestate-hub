@@ -12,6 +12,8 @@ import StarRating from './StarRating';
 import ImageUpload from './ImageUpload';
 import EditProfileModal from './EditProfileModal';
 import BusinessReviews from './BusinessReviews';
+import UserConnections from './UserConnections';
+import UserProperties from './UserProperties';
 import { useToast } from '@/hooks/use-toast';
 
 const Profile: React.FC = () => {
@@ -23,6 +25,8 @@ const Profile: React.FC = () => {
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [showReviews, setShowReviews] = useState(false);
+  const [showConnections, setShowConnections] = useState(false);
+  const [showProperties, setShowProperties] = useState(false);
   const { toast } = useToast();
 
   // Fetch ratings if current user is a business
@@ -79,6 +83,7 @@ const Profile: React.FC = () => {
 
   const ratingStats = profile.badge === 'business' ? getRatingStats(profile.id) : null;
   const isBusiness = profile.badge === 'business';
+  const isOwner = profile.badge === 'owner';
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -137,7 +142,7 @@ const Profile: React.FC = () => {
                   <MapPin className="h-4 w-4 mr-1" />
                   <span>{profile.location || 'Location not set'}</span>
                 </div>
-                <p className="text-gray-700 leading-relaxed mb-4">
+                <p className="text-gray-700 leading-relaxed mb-4 text-left">
                   {profile.description || 'No description provided'}
                 </p>
                 {profile.listing_preference && !isBusiness && (
@@ -163,7 +168,12 @@ const Profile: React.FC = () => {
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white rounded-xl shadow-sm border p-6 text-center">
+        <div 
+          className={`bg-white rounded-xl shadow-sm border p-6 text-center cursor-pointer transition-all duration-200 ${
+            showProperties ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:shadow-md'
+          }`}
+          onClick={() => setShowProperties(!showProperties)}
+        >
           <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
             <Building className="h-6 w-6 text-blue-600" />
           </div>
@@ -196,7 +206,12 @@ const Profile: React.FC = () => {
           </div>
         )}
         
-        <div className="bg-white rounded-xl shadow-sm border p-6 text-center">
+        <div 
+          className={`bg-white rounded-xl shadow-sm border p-6 text-center cursor-pointer transition-all duration-200 ${
+            showConnections ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:shadow-md'
+          }`}
+          onClick={() => setShowConnections(!showConnections)}
+        >
           <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
             <MessageSquare className="h-6 w-6 text-purple-600" />
           </div>
@@ -212,6 +227,26 @@ const Profile: React.FC = () => {
             <h2 className="text-xl font-semibold text-gray-900">Customer Reviews</h2>
           </div>
           <BusinessReviews businessId={profile.id} />
+        </div>
+      )}
+
+      {/* Connections Section - Only show when clicked */}
+      {showConnections && (
+        <div className="bg-white rounded-xl shadow-sm border">
+          <div className="p-6 border-b">
+            <h2 className="text-xl font-semibold text-gray-900">My Connections</h2>
+          </div>
+          <UserConnections connections={connections} />
+        </div>
+      )}
+
+      {/* Properties Section - Only show when clicked for owners/business */}
+      {(isOwner || isBusiness) && showProperties && (
+        <div className="bg-white rounded-xl shadow-sm border">
+          <div className="p-6 border-b">
+            <h2 className="text-xl font-semibold text-gray-900">My Properties</h2>
+          </div>
+          <UserProperties ownerId={profile.id} />
         </div>
       )}
 
