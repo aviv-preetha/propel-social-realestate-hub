@@ -2,12 +2,14 @@
 import React, { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import UserBadge from './UserBadge';
 
 const Auth: React.FC = () => {
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [badge, setBadge] = useState<'owner' | 'seeker' | 'business'>('seeker');
   const [loading, setLoading] = useState(false);
   const { signIn, signUp } = useAuth();
   const { toast } = useToast();
@@ -18,7 +20,7 @@ const Auth: React.FC = () => {
 
     try {
       if (isSignUp) {
-        const { error } = await signUp(email, password, { name });
+        const { error } = await signUp(email, password, { name, badge });
         if (error) throw error;
         toast({
           title: "Success!",
@@ -52,7 +54,7 @@ const Auth: React.FC = () => {
           </h2>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="rounded-md shadow-sm -space-y-px">
+          <div className="rounded-md shadow-sm space-y-4">
             {isSignUp && (
               <div>
                 <input
@@ -60,7 +62,7 @@ const Auth: React.FC = () => {
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="relative block w-full px-3 py-2 border border-gray-300 rounded-t-md placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className="relative block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                   placeholder="Full name"
                 />
               </div>
@@ -71,7 +73,7 @@ const Auth: React.FC = () => {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className={`relative block w-full px-3 py-2 border border-gray-300 ${isSignUp ? '' : 'rounded-t-md'} placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500`}
+                className="relative block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Email address"
               />
             </div>
@@ -81,10 +83,44 @@ const Auth: React.FC = () => {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="relative block w-full px-3 py-2 border border-gray-300 rounded-b-md placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                className="relative block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Password"
               />
             </div>
+            {isSignUp && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  I am a:
+                </label>
+                <div className="grid grid-cols-1 gap-3">
+                  {(['seeker', 'owner', 'business'] as const).map((badgeType) => (
+                    <label
+                      key={badgeType}
+                      className={`relative flex items-center p-3 border rounded-lg cursor-pointer transition-colors ${
+                        badge === badgeType
+                          ? 'border-blue-500 bg-blue-50'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="badge"
+                        value={badgeType}
+                        checked={badge === badgeType}
+                        onChange={(e) => setBadge(e.target.value as 'owner' | 'seeker' | 'business')}
+                        className="sr-only"
+                      />
+                      <UserBadge badge={badgeType} size="md" />
+                      <span className="ml-3 text-sm text-gray-700 capitalize">
+                        {badgeType === 'seeker' && 'Looking for properties'}
+                        {badgeType === 'owner' && 'Property owner'}
+                        {badgeType === 'business' && 'Real estate business'}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           <div>

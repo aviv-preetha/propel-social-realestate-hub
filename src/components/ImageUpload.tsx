@@ -11,6 +11,7 @@ interface ImageUploadProps {
   className?: string;
   currentImage?: string;
   isAvatar?: boolean;
+  children?: React.ReactNode;
 }
 
 const ImageUpload: React.FC<ImageUploadProps> = ({
@@ -19,6 +20,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
   className = '',
   currentImage,
   isAvatar = false,
+  children,
 }) => {
   const [uploading, setUploading] = useState(false);
   const { user } = useAuth();
@@ -75,11 +77,15 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
       />
       <label
         htmlFor={`image-upload-${bucket}`}
-        className={`flex items-center justify-center border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 transition-colors cursor-pointer ${
+        className={`flex items-center justify-center cursor-pointer ${
+          uploading ? 'opacity-50 cursor-not-allowed' : ''
+        } ${!children ? `border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 transition-colors ${
           isAvatar ? 'w-32 h-32 rounded-full' : 'h-32'
-        } ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}
+        }` : ''}`}
       >
-        {currentImage ? (
+        {children ? (
+          children
+        ) : currentImage ? (
           <img
             src={currentImage}
             alt="Current"

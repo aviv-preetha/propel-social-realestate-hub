@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useConnections } from '@/hooks/useConnections';
 import { useProperties } from '@/hooks/useProperties';
 import AvatarWithBadge from './AvatarWithBadge';
+import UserBadge from './UserBadge';
 import ImageUpload from './ImageUpload';
 import EditProfileModal from './EditProfileModal';
 import { useToast } from '@/hooks/use-toast';
@@ -71,66 +72,69 @@ const Profile: React.FC = () => {
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Profile Header */}
-      <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-        <div className="h-32 bg-gradient-to-r from-blue-500 to-blue-700"></div>
-        <div className="px-6 pb-6">
-          <div className="flex items-start space-x-6 -mt-16">
-            <div className="relative">
-              {isUploadingAvatar ? (
-                <div className="w-32 h-32 rounded-full bg-gray-200 border-4 border-white flex items-center justify-center">
-                  <p className="text-sm text-gray-500">Uploading...</p>
-                </div>
-              ) : (
-                <AvatarWithBadge
+      <div className="bg-white rounded-xl shadow-sm border p-8">
+        <div className="flex items-start space-x-8">
+          <div className="relative">
+            {isUploadingAvatar ? (
+              <div className="w-40 h-40 rounded-full bg-gray-200 border-4 border-white flex items-center justify-center">
+                <p className="text-sm text-gray-500">Uploading...</p>
+              </div>
+            ) : (
+              <div className="relative">
+                <img
                   src={profile.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.name}`}
                   alt={profile.name}
-                  badge={profile.badge}
-                  size="lg"
-                  className="w-32 h-32 border-4 border-white"
+                  className="w-40 h-40 rounded-full object-cover border-4 border-white shadow-lg"
                 />
-              )}
-              <div className="absolute bottom-2 right-2">
-                <ImageUpload
-                  bucket="avatars"
-                  onUpload={handleAvatarUpload}
-                  isAvatar={true}
-                  className="w-8 h-8"
-                />
+                <div className="absolute bottom-2 right-2">
+                  <ImageUpload
+                    bucket="avatars"
+                    onUpload={handleAvatarUpload}
+                    isAvatar={true}
+                    className="w-10 h-10 bg-white rounded-full shadow-lg border-2 border-white flex items-center justify-center hover:bg-gray-50 transition-colors"
+                  >
+                    <Camera className="h-5 w-5 text-gray-600" />
+                  </ImageUpload>
+                </div>
               </div>
-            </div>
-            <div className="flex-1 pt-16">
-              <div className="flex items-start justify-between">
-                <div>
-                  <h1 className="text-2xl font-bold text-gray-900 mb-2">{profile.name}</h1>
-                  <div className="flex items-center text-gray-600 mb-3">
-                    <MapPin className="h-4 w-4 mr-1" />
-                    <span>{profile.location || 'Location not set'}</span>
+            )}
+          </div>
+          
+          <div className="flex-1">
+            <div className="flex items-start justify-between">
+              <div>
+                <div className="flex items-center gap-3 mb-2">
+                  <h1 className="text-3xl font-bold text-gray-900">{profile.name}</h1>
+                  <UserBadge badge={profile.badge} size="md" />
+                </div>
+                <div className="flex items-center text-gray-600 mb-4">
+                  <MapPin className="h-4 w-4 mr-1" />
+                  <span>{profile.location || 'Location not set'}</span>
+                </div>
+                <p className="text-gray-700 leading-relaxed mb-4">
+                  {profile.description || 'No description provided'}
+                </p>
+                {profile.listing_preference && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <p className="text-blue-800 font-medium text-sm">Listing Preference:</p>
+                    <p className="text-blue-700 text-sm">{profile.listing_preference}</p>
                   </div>
-                  <p className="text-gray-700 leading-relaxed mb-4">
-                    {profile.description || 'No description provided'}
-                  </p>
-                  {profile.listing_preference && (
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                      <p className="text-blue-800 font-medium text-sm">Listing Preference:</p>
-                      <p className="text-blue-700 text-sm">{profile.listing_preference}</p>
-                    </div>
-                  )}
-                </div>
-                <div className="flex space-x-2">
-                  <button
-                    onClick={() => setIsEditingProfile(true)}
-                    className="flex items-center space-x-2 bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 transition-colors"
-                  >
-                    <Edit className="h-4 w-4" />
-                    <span>Edit Profile</span>
-                  </button>
-                  <button
-                    onClick={handleSignOut}
-                    className="flex items-center space-x-2 bg-red-100 text-red-700 px-4 py-2 rounded-lg font-medium hover:bg-red-200 transition-colors"
-                  >
-                    <span>Sign Out</span>
-                  </button>
-                </div>
+                )}
+              </div>
+              <div className="flex space-x-2">
+                <button
+                  onClick={() => setIsEditingProfile(true)}
+                  className="flex items-center space-x-2 bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+                >
+                  <Edit className="h-4 w-4" />
+                  <span>Edit Profile</span>
+                </button>
+                <button
+                  onClick={handleSignOut}
+                  className="flex items-center space-x-2 bg-red-100 text-red-700 px-4 py-2 rounded-lg font-medium hover:bg-red-200 transition-colors"
+                >
+                  <span>Sign Out</span>
+                </button>
               </div>
             </div>
           </div>
