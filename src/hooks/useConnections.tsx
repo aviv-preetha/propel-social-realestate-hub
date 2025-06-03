@@ -66,7 +66,6 @@ export function useConnections() {
 
       console.log('Raw pending connections data:', pendingData);
 
-      // Type the data properly
       const typedPendingData: Connection[] = (pendingData || []).map(conn => ({
         ...conn,
         status: conn.status as 'pending' | 'accepted'
@@ -80,7 +79,7 @@ export function useConnections() {
         conn.user_id === profile.id ? conn.connected_user_id : conn.user_id
       ) || [];
 
-      // Get pending profile IDs
+      // Get pending profile IDs (both sent and received)
       const pendingProfileIds = pendingData?.map(conn => 
         conn.user_id === profile.id ? conn.connected_user_id : conn.user_id
       ) || [];
@@ -194,23 +193,21 @@ export function useConnections() {
     if (!profile?.id) return;
 
     try {
-      await supabase
+      // Delete any connection between these two users (regardless of who initiated)
+      const { error } = await supabase
         .from('connections')
         .delete()
-        .or(`user_id.eq.${profile.id},connected_user_id.eq.${profile.id}`)
-        .or(`user_id.eq.${targetProfileId},connected_user_id.eq.${targetProfileId}`);
+        .or(`and(user_id.eq.${profile.id},connected_user_id.eq.${targetProfileId}),and(user_id.eq.${targetProfileId},connected_user_id.eq.${profile.id})`);
 
-      // Move from connections to suggestions
-      const disconnectedProfile = connections.find(p => p.id === targetProfileId);
-      if (disconnectedProfile) {
-        setConnections(prev => prev.filter(p => p.id !== targetProfileId));
-        setSuggestions(prev => [...prev, disconnectedProfile]);
-      }
+      if (error) throw error;
 
       toast({
         title: "Disconnected",
         description: "Connection removed",
       });
+
+      // Refresh data
+      await fetchConnections();
     } catch (error) {
       console.error('Error disconnecting:', error);
       toast({
