@@ -56,7 +56,13 @@ export function useConnections() {
 
       if (pendingError) throw pendingError;
 
-      setPendingConnections(pendingData || []);
+      // Type the data properly
+      const typedPendingData: Connection[] = (pendingData || []).map(conn => ({
+        ...conn,
+        status: conn.status as 'pending' | 'accepted'
+      }));
+
+      setPendingConnections(typedPendingData);
 
       // Get connected profile IDs
       const connectedProfileIds = connectionsData?.map(conn => 
