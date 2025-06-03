@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Heart, MapPin, Bed, Bath, Square } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,7 +11,7 @@ interface ShortlistedPropertiesProps {
 }
 
 const ShortlistedProperties: React.FC<ShortlistedPropertiesProps> = ({ onCountUpdate }) => {
-  const { properties, shortlistedProperties, toggleShortlist } = useProperties();
+  const { properties, shortlistedProperties } = useProperties();
   const { profile } = useProfile();
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
   const [loading, setLoading] = useState(true);
@@ -37,11 +38,6 @@ const ShortlistedProperties: React.FC<ShortlistedPropertiesProps> = ({ onCountUp
   const shortlistedPropertyObjects = properties.filter(property => 
     shortlistedProperties.includes(property.id)
   );
-
-  const handleRemoveFromShortlist = async (propertyId: string, event: React.MouseEvent) => {
-    event.stopPropagation();
-    await toggleShortlist(propertyId);
-  };
 
   if (loading) {
     return (
@@ -127,13 +123,9 @@ const ShortlistedProperties: React.FC<ShortlistedPropertiesProps> = ({ onCountUp
                       }`}>
                         For {property.type === 'rent' ? 'Rent' : 'Sale'}
                       </span>
-                      <button
-                        onClick={(e) => handleRemoveFromShortlist(property.id, e)}
-                        className="p-1 rounded-full text-red-500 hover:bg-red-50 transition-colors"
-                        title="Remove from shortlist"
-                      >
+                      <div className="p-1 rounded-full text-red-500">
                         <Heart className="h-4 w-4" fill="currentColor" />
-                      </button>
+                      </div>
                     </div>
                   </div>
                 </div>
