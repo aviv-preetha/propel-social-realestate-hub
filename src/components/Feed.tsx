@@ -71,21 +71,35 @@ const Feed: React.FC = () => {
       if (error) throw error;
       
       if (data) {
-        // Type the data properly
-        const typedPosts: Post[] = data.map(post => ({
-          ...post,
-          profiles: {
-            ...post.profiles,
-            badge: post.profiles.badge as 'owner' | 'seeker' | 'business'
-          },
-          post_comments: post.post_comments.map((comment: any) => ({
-            ...comment,
+        // Type the data properly with null checks
+        const typedPosts: Post[] = data.map(post => {
+          // Handle profiles data - ensure it exists and has the right structure
+          const profileData = post.profiles;
+          if (!profileData || typeof profileData !== 'object') {
+            throw new Error('Profile data is missing for post');
+          }
+
+          return {
+            ...post,
             profiles: {
-              ...comment.profiles,
-              badge: comment.profiles.badge as 'owner' | 'seeker' | 'business'
-            }
-          }))
-        }));
+              name: profileData.name || 'Unknown User',
+              avatar_url: profileData.avatar_url,
+              badge: (profileData.badge as 'owner' | 'seeker' | 'business') || 'seeker',
+              location: profileData.location
+            },
+            post_comments: (post.post_comments || []).map((comment: any) => {
+              const commentProfile = comment.profiles;
+              return {
+                ...comment,
+                profiles: {
+                  name: commentProfile?.name || 'Unknown User',
+                  avatar_url: commentProfile?.avatar_url,
+                  badge: (commentProfile?.badge as 'owner' | 'seeker' | 'business') || 'seeker'
+                }
+              };
+            })
+          };
+        });
         setPosts(typedPosts);
       }
     } catch (error) {
