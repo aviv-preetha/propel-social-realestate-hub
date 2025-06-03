@@ -76,25 +76,29 @@ const Profile: React.FC = () => {
                 <p className="text-sm text-gray-500">Uploading...</p>
               </div>
             ) : (
-              <div className="relative w-48 h-48">
-                <img
-                  src={profile.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.name}`}
-                  alt={profile.name}
-                  className="w-48 h-48 rounded-full object-cover shadow-lg"
-                />
-                <div className="absolute bottom-2 right-2 w-12 h-12">
-                  <ImageUpload
-                    bucket="avatars"
-                    onUpload={handleAvatarUpload}
-                    isAvatar={true}
-                    isOverlay={true}
-                    className="w-full h-full bg-white rounded-full shadow-lg border-2 border-white hover:bg-gray-50 transition-colors"
-                  >
-                    <div className="w-full h-full flex items-center justify-center">
-                      <Camera className="h-5 w-5 text-gray-600" />
+              <div className="relative w-48 h-48 group">
+                <ImageUpload
+                  bucket="avatars"
+                  onUpload={handleAvatarUpload}
+                  isAvatar={true}
+                  isOverlay={true}
+                  className="w-full h-full"
+                >
+                  <div className="relative w-full h-full cursor-pointer">
+                    <img
+                      src={profile.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.name}`}
+                      alt={profile.name}
+                      className="w-48 h-48 rounded-full object-cover shadow-lg"
+                    />
+                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 rounded-full transition-all duration-200 flex items-center justify-center">
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                        <div className="w-12 h-12 bg-white rounded-full shadow-lg border-2 border-white flex items-center justify-center">
+                          <Camera className="h-5 w-5 text-gray-600" />
+                        </div>
+                      </div>
                     </div>
-                  </ImageUpload>
-                </div>
+                  </div>
+                </ImageUpload>
               </div>
             )}
           </div>
