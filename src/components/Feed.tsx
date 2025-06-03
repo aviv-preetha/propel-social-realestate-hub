@@ -1,24 +1,68 @@
-
 import React, { useState } from 'react';
 import { Heart, MessageCircle, Share, Send, MoreHorizontal } from 'lucide-react';
 import UserBadge from './UserBadge';
 import { usePosts } from '@/hooks/usePosts';
 import { useProfile } from '@/hooks/useProfile';
-import { mockUsers } from '@/data/mockData';
+import { supabase } from '@/integrations/supabase/client';
+
+interface ProfileData {
+  id: string;
+  name: string;
+  avatar_url?: string;
+  badge: 'owner' | 'seeker' | 'business';
+}
 
 const Feed: React.FC = () => {
   const { posts, loading, toggleLike, addComment, createPost } = usePosts();
   const { profile } = useProfile();
   const [newComments, setNewComments] = useState<Record<string, string>>({});
   const [newPostContent, setNewPostContent] = useState('');
+  const [profileCache, setProfileCache] = useState<Record<string, ProfileData>>({});
 
-  const getUserById = (userId: string) => {
-    return mockUsers.find(user => user.id === userId) || {
-      id: userId,
-      name: 'Unknown User',
-      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${userId}`,
-      badge: 'seeker' as const
-    };
+  const getUserById = async (userId: string): Promise<ProfileData> => {
+    // Check cache first
+    if (profileCache[userId]) {
+      return profileCache[userId];
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, name, avatar_url, badge')
+        .eq('id', userId)
+        .single();
+
+      if (error || !data) {
+        const fallbackUser = {
+          id: userId,
+          name: 'Unknown User',
+          avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${userId}`,
+          badge: 'seeker' as const
+        };
+        setProfileCache(prev => ({ ...prev, [userId]: fallbackUser }));
+        return fallbackUser;
+      }
+
+      const userData = {
+        id: data.id,
+        name: data.name,
+        avatar_url: data.avatar_url,
+        badge: data.badge as 'owner' | 'seeker' | 'business'
+      };
+
+      setProfileCache(prev => ({ ...prev, [userId]: userData }));
+      return userData;
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+      const fallbackUser = {
+        id: userId,
+        name: 'Unknown User',
+        avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${userId}`,
+        badge: 'seeker' as const
+      };
+      setProfileCache(prev => ({ ...prev, [userId]: fallbackUser }));
+      return fallbackUser;
+    }
   };
 
   const handleCommentSubmit = async (postId: string) => {
@@ -103,8 +147,22 @@ const Feed: React.FC = () => {
 
       {/* Posts */}
       {posts.map((post) => {
-        const author = getUserById(post.userId);
-        const isLiked = profile ? post.likes.includes(profile.user_id) : false;
+        const [author, setAuthor] = useState<ProfileData | null>(null);
+        
+        // Fetch author data when component mounts
+        React.useEffect(() => {
+          getUserById(post.userId).then(setAuthor);
+        }, [post.userId]);
+
+        if (!author) {
+          return (
+            <div key={post.id} className="bg-white rounded-xl shadow-sm border p-6">
+              <p className="text-gray-500">Loading post...</p>
+            </div>
+          );
+        }
+
+        const isLiked = profile ? post.likes.includes(profile.id) : false;
 
         return (
           <div key={post.id} className="bg-white rounded-xl shadow-sm border">
@@ -112,7 +170,7 @@ const Feed: React.FC = () => {
             <div className="p-6 pb-4">
               <div className="flex items-start space-x-3">
                 <img
-                  src={author.avatar}
+                  src={author.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${author.name}`}
                   alt={author.name}
                   className="w-12 h-12 rounded-full object-cover"
                 />
@@ -182,11 +240,18 @@ const Feed: React.FC = () => {
               <div className="px-6 pb-4 border-t border-gray-100">
                 <div className="space-y-3 mt-4">
                   {post.comments.map((comment) => {
-                    const commentAuthor = getUserById(comment.userId);
+                    const [commentAuthor, setCommentAuthor] = useState<ProfileData | null>(null);
+                    
+                    React.useEffect(() => {
+                      getUserById(comment.userId).then(setCommentAuthor);
+                    }, [comment.userId]);
+
+                    if (!commentAuthor) return null;
+
                     return (
                       <div key={comment.id} className="flex space-x-3">
                         <img
-                          src={commentAuthor.avatar}
+                          src={commentAuthor.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${commentAuthor.name}`}
                           alt={commentAuthor.name}
                           className="w-8 h-8 rounded-full object-cover"
                         />

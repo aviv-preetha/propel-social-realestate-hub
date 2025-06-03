@@ -38,6 +38,8 @@ export function useConnections() {
     if (!profile?.id) return;
 
     try {
+      console.log('Fetching connections for profile:', profile.id);
+
       // Get accepted connections
       const { data: connectionsData, error: connectionsError } = await supabase
         .from('connections')
@@ -45,7 +47,10 @@ export function useConnections() {
         .or(`user_id.eq.${profile.id},connected_user_id.eq.${profile.id}`)
         .eq('status', 'accepted');
 
-      if (connectionsError) throw connectionsError;
+      if (connectionsError) {
+        console.error('Error fetching connections:', connectionsError);
+        throw connectionsError;
+      }
 
       // Get pending connections
       const { data: pendingData, error: pendingError } = await supabase
@@ -54,7 +59,12 @@ export function useConnections() {
         .or(`user_id.eq.${profile.id},connected_user_id.eq.${profile.id}`)
         .eq('status', 'pending');
 
-      if (pendingError) throw pendingError;
+      if (pendingError) {
+        console.error('Error fetching pending connections:', pendingError);
+        throw pendingError;
+      }
+
+      console.log('Raw pending connections data:', pendingData);
 
       // Type the data properly
       const typedPendingData: Connection[] = (pendingData || []).map(conn => ({
@@ -62,6 +72,7 @@ export function useConnections() {
         status: conn.status as 'pending' | 'accepted'
       }));
 
+      console.log('Typed pending connections:', typedPendingData);
       setPendingConnections(typedPendingData);
 
       // Get connected profile IDs
@@ -73,6 +84,9 @@ export function useConnections() {
       const pendingProfileIds = pendingData?.map(conn => 
         conn.user_id === profile.id ? conn.connected_user_id : conn.user_id
       ) || [];
+
+      console.log('Connected profile IDs:', connectedProfileIds);
+      console.log('Pending profile IDs:', pendingProfileIds);
 
       // Fetch profiles for connected users
       let connectedProfiles: Profile[] = [];
@@ -99,6 +113,7 @@ export function useConnections() {
       if (profilesError) throw profilesError;
 
       setSuggestions(allProfiles as Profile[]);
+      console.log('Suggestions after filtering:', allProfiles?.length);
     } catch (error) {
       console.error('Error fetching connections:', error);
       toast({
@@ -209,8 +224,13 @@ export function useConnections() {
   const getConnectionStatus = (profileId: string) => {
     if (!profile?.id) return 'none';
     
+    console.log('Checking connection status for:', profileId);
+    console.log('Current connections:', connections.map(c => c.id));
+    console.log('Pending connections:', pendingConnections);
+    
     // Check if already connected
     if (connections.some(p => p.id === profileId)) {
+      console.log('Found in connections - status: connected');
       return 'connected';
     }
     
@@ -218,14 +238,21 @@ export function useConnections() {
     const sentRequest = pendingConnections.find(conn => 
       conn.user_id === profile.id && conn.connected_user_id === profileId
     );
-    if (sentRequest) return 'pending';
+    if (sentRequest) {
+      console.log('Found sent request - status: pending');
+      return 'pending';
+    }
     
     // Check if I received a request
     const receivedRequest = pendingConnections.find(conn => 
       conn.connected_user_id === profile.id && conn.user_id === profileId
     );
-    if (receivedRequest) return 'received';
+    if (receivedRequest) {
+      console.log('Found received request - status: received');
+      return 'received';
+    }
     
+    console.log('No connection found - status: none');
     return 'none';
   };
 
