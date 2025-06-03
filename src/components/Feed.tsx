@@ -118,20 +118,34 @@ const Feed: React.FC = () => {
   };
 
   const renderTextWithMentions = (text: string) => {
-    const mentionRegex = /@(\w+)/g;
-    const parts = text.split(mentionRegex);
-    
-    return parts.map((part, index) => {
-      if (index % 2 === 1) {
-        // This is a mention (the captured group)
-        return (
-          <span key={index} className="text-blue-600 font-medium bg-blue-50 px-1 rounded">
-            @{part}
-          </span>
-        );
+    // Updated regex to match @ followed by any word characters and spaces until the next @ or end
+    const mentionRegex = /@([a-zA-Z\s]+?)(?=\s@|$|\s[^@])/g;
+    const parts = [];
+    let lastIndex = 0;
+    let match;
+
+    while ((match = mentionRegex.exec(text)) !== null) {
+      // Add text before the mention
+      if (match.index > lastIndex) {
+        parts.push(text.substring(lastIndex, match.index));
       }
-      return part;
-    });
+      
+      // Add the mention with highlighting
+      parts.push(
+        <span key={match.index} className="text-blue-600 font-medium bg-blue-50 px-1 rounded">
+          @{match[1].trim()}
+        </span>
+      );
+      
+      lastIndex = match.index + match[0].length;
+    }
+    
+    // Add remaining text
+    if (lastIndex < text.length) {
+      parts.push(text.substring(lastIndex));
+    }
+    
+    return parts.length > 0 ? parts : text;
   };
 
   const formatTimestamp = (timestamp: Date) => {

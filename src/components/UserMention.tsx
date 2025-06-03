@@ -25,7 +25,7 @@ const UserMention: React.FC<UserMentionProps> = ({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    if (mentionQuery.length > 0) {
+    if (mentionQuery.length >= 0) { // Show suggestions immediately after @
       const filtered = connections.filter(connection => 
         connection.name.toLowerCase().includes(mentionQuery.toLowerCase())
       ).slice(0, 5);
@@ -44,9 +44,9 @@ const UserMention: React.FC<UserMentionProps> = ({
     onChange(newValue);
     setCursorPosition(newCursorPosition);
 
-    // Check for @ mentions
+    // Check for @ mentions - match @ followed by any characters (including empty)
     const beforeCursor = newValue.substring(0, newCursorPosition);
-    const mentionMatch = beforeCursor.match(/@(\w*)$/);
+    const mentionMatch = beforeCursor.match(/@([^@\s]*)$/);
     
     if (mentionMatch) {
       setMentionQuery(mentionMatch[1]);
@@ -59,7 +59,7 @@ const UserMention: React.FC<UserMentionProps> = ({
   const selectUser = (user: typeof connections[0]) => {
     const beforeCursor = value.substring(0, cursorPosition);
     const afterCursor = value.substring(cursorPosition);
-    const mentionMatch = beforeCursor.match(/@(\w*)$/);
+    const mentionMatch = beforeCursor.match(/@([^@\s]*)$/);
     
     if (mentionMatch) {
       const mentionStart = beforeCursor.length - mentionMatch[0].length;
