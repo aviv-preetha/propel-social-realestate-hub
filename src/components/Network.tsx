@@ -1,35 +1,22 @@
 
 import React, { useState } from 'react';
 import { UserPlus, Users, MessageCircle, Star } from 'lucide-react';
-import { mockUsers } from '../data/mockData';
 import UserBadge from './UserBadge';
-import { User } from '../types';
+import { useConnections } from '@/hooks/useConnections';
 
 const Network: React.FC = () => {
-  const [currentUser, setCurrentUser] = useState(mockUsers[0]);
-  const [users] = useState(mockUsers);
+  const { connections, suggestions, loading, connect, disconnect } = useConnections();
   const [activeTab, setActiveTab] = useState<'discover' | 'connections'>('discover');
-  
-  const connections = users.filter(user => currentUser.connections.includes(user.id));
-  const suggestions = users.filter(user => 
-    user.id !== currentUser.id && !currentUser.connections.includes(user.id)
-  );
 
-  const handleConnect = (userId: string) => {
-    setCurrentUser(prev => ({
-      ...prev,
-      connections: [...prev.connections, userId]
-    }));
-    console.log('Connected with user:', userId);
-  };
-
-  const handleDisconnect = (userId: string) => {
-    setCurrentUser(prev => ({
-      ...prev,
-      connections: prev.connections.filter(id => id !== userId)
-    }));
-    console.log('Disconnected from user:', userId);
-  };
+  if (loading) {
+    return (
+      <div className="max-w-4xl mx-auto">
+        <div className="bg-white rounded-xl shadow-sm border p-6 text-center">
+          <p className="text-gray-500">Loading network...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -63,43 +50,50 @@ const Network: React.FC = () => {
       {activeTab === 'discover' && (
         <div className="space-y-4">
           <h3 className="text-lg font-semibold text-gray-900">People you may know</h3>
-          {suggestions.map((user) => (
-            <div key={user.id} className="bg-white rounded-xl shadow-sm border p-6">
-              <div className="flex items-start space-x-4">
-                <img
-                  src={user.avatar}
-                  alt={user.name}
-                  className="w-16 h-16 rounded-full object-cover"
-                />
-                <div className="flex-1">
-                  <div className="flex items-center space-x-2 mb-2">
-                    <h3 className="text-lg font-semibold text-gray-900">{user.name}</h3>
-                    <UserBadge badge={user.badge} />
+          {suggestions.length > 0 ? (
+            suggestions.map((user) => (
+              <div key={user.id} className="bg-white rounded-xl shadow-sm border p-6">
+                <div className="flex items-start space-x-4">
+                  <img
+                    src={user.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`}
+                    alt={user.name}
+                    className="w-16 h-16 rounded-full object-cover"
+                  />
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <h3 className="text-lg font-semibold text-gray-900">{user.name}</h3>
+                      <UserBadge badge={user.badge} />
+                    </div>
+                    <p className="text-gray-600 mb-2">{user.location}</p>
+                    <p className="text-gray-700 text-sm leading-relaxed">{user.description}</p>
+                    {user.listing_preference && (
+                      <p className="text-blue-600 text-sm mt-2 font-medium">
+                        Preference: {user.listing_preference}
+                      </p>
+                    )}
                   </div>
-                  <p className="text-gray-600 mb-2">{user.location}</p>
-                  <p className="text-gray-700 text-sm leading-relaxed">{user.description}</p>
-                  {user.listingPreference && (
-                    <p className="text-blue-600 text-sm mt-2 font-medium">
-                      Preference: {user.listingPreference}
-                    </p>
-                  )}
-                </div>
-                <div className="flex flex-col space-y-2">
-                  <button
-                    onClick={() => handleConnect(user.id)}
-                    className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors"
-                  >
-                    <UserPlus className="h-4 w-4" />
-                    <span>Connect</span>
-                  </button>
-                  <button className="flex items-center space-x-2 border border-gray-300 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors">
-                    <MessageCircle className="h-4 w-4" />
-                    <span>Message</span>
-                  </button>
+                  <div className="flex flex-col space-y-2">
+                    <button
+                      onClick={() => connect(user.user_id)}
+                      className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                    >
+                      <UserPlus className="h-4 w-4" />
+                      <span>Connect</span>
+                    </button>
+                    <button className="flex items-center space-x-2 border border-gray-300 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors">
+                      <MessageCircle className="h-4 w-4" />
+                      <span>Message</span>
+                    </button>
+                  </div>
                 </div>
               </div>
+            ))
+          ) : (
+            <div className="bg-white rounded-xl shadow-sm border p-12 text-center">
+              <p className="text-gray-500 text-lg">No suggestions available</p>
+              <p className="text-gray-400">Check back later for new connection opportunities</p>
             </div>
-          ))}
+          )}
         </div>
       )}
 
@@ -111,7 +105,7 @@ const Network: React.FC = () => {
               <div key={user.id} className="bg-white rounded-xl shadow-sm border p-6">
                 <div className="flex items-start space-x-4">
                   <img
-                    src={user.avatar}
+                    src={user.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`}
                     alt={user.name}
                     className="w-16 h-16 rounded-full object-cover"
                   />
@@ -135,7 +129,7 @@ const Network: React.FC = () => {
                       </button>
                     )}
                     <button
-                      onClick={() => handleDisconnect(user.id)}
+                      onClick={() => disconnect(user.user_id)}
                       className="text-sm text-red-600 hover:text-red-800 transition-colors"
                     >
                       Disconnect
