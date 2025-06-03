@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Heart, MessageCircle, Share, Send, MoreHorizontal } from 'lucide-react';
 import UserBadge from './UserBadge';
@@ -350,14 +351,14 @@ const Feed: React.FC = () => {
                         }))}
                         onTagUser={(userId) => handleCommentTagUser(post.id, userId)}
                         placeholder="Write a comment..."
-                        className="w-full px-3 py-2 border border-gray-300 rounded-full text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent text-left"
+                        className="w-full px-3 py-1 border border-gray-300 rounded-full text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent text-left min-h-[32px]"
                       />
                     </div>
                     <button
                       onClick={() => handleCommentSubmit(post.id)}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors"
+                      className="px-3 py-1 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors h-8 flex items-center justify-center"
                     >
-                      <Send className="h-4 w-4" />
+                      <Send className="h-3 w-3" />
                     </button>
                   </div>
                 </div>
