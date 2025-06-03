@@ -130,18 +130,12 @@ export function useConnections() {
 
       if (error) throw error;
 
-      // Move from suggestions to pending
-      const connectedProfile = suggestions.find(p => p.id === targetProfileId);
-      if (connectedProfile) {
-        setSuggestions(prev => prev.filter(p => p.id !== targetProfileId));
-      }
-
       toast({
         title: "Connection request sent!",
         description: "Your connection request has been sent",
       });
 
-      // Refresh data
+      // Refresh data to update the UI
       await fetchConnections();
     } catch (error) {
       console.error('Error connecting:', error);

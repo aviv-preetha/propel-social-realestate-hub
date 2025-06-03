@@ -7,9 +7,10 @@ import { useProfile } from '@/hooks/useProfile';
 import { mockUsers } from '@/data/mockData';
 
 const Feed: React.FC = () => {
-  const { posts, loading, toggleLike, addComment } = usePosts();
+  const { posts, loading, toggleLike, addComment, createPost } = usePosts();
   const { profile } = useProfile();
   const [newComments, setNewComments] = useState<Record<string, string>>({});
+  const [newPostContent, setNewPostContent] = useState('');
 
   const getUserById = (userId: string) => {
     return mockUsers.find(user => user.id === userId) || {
@@ -26,6 +27,14 @@ const Feed: React.FC = () => {
 
     await addComment(postId, content);
     setNewComments(prev => ({ ...prev, [postId]: '' }));
+  };
+
+  const handleCreatePost = async () => {
+    const content = newPostContent.trim();
+    if (!content) return;
+
+    await createPost(content);
+    setNewPostContent('');
   };
 
   const formatTimestamp = (timestamp: Date) => {
@@ -65,6 +74,8 @@ const Feed: React.FC = () => {
             <div className="flex-1">
               <textarea
                 placeholder="What's on your mind about real estate?"
+                value={newPostContent}
+                onChange={(e) => setNewPostContent(e.target.value)}
                 className="w-full p-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 rows={3}
               />
@@ -77,7 +88,11 @@ const Feed: React.FC = () => {
                     🏠 Property
                   </button>
                 </div>
-                <button className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors">
+                <button 
+                  onClick={handleCreatePost}
+                  disabled={!newPostContent.trim()}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
                   Post
                 </button>
               </div>
