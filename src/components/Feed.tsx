@@ -241,8 +241,9 @@ const Feed: React.FC = () => {
                   <div className="flex items-center space-x-2">
                     <h3 className="font-semibold text-gray-900">{author.name}</h3>
                     <UserBadge badge={author.badge} />
+                    <span className="text-gray-500 text-sm">•</span>
+                    <p className="text-gray-500 text-sm">{formatTimestamp(post.timestamp)}</p>
                   </div>
-                  <p className="text-gray-500 text-sm">{formatTimestamp(post.timestamp)}</p>
                 </div>
                 <button className="text-gray-400 hover:text-gray-600">
                   <MoreHorizontal className="h-5 w-5" />
@@ -318,6 +319,7 @@ const Feed: React.FC = () => {
                           <div className="bg-gray-50 rounded-lg p-3">
                             <div className="flex items-center space-x-2 mb-1">
                               <span className="font-medium text-sm">{commentAuthor.name}</span>
+                              <span className="text-xs text-gray-500">•</span>
                               <span className="text-xs text-gray-500">
                                 {formatTimestamp(comment.timestamp)}
                               </span>
