@@ -4,15 +4,36 @@ import { Edit, MapPin, Heart, Star, Building } from 'lucide-react';
 import { mockUsers, mockProperties } from '../data/mockData';
 import UserBadge from './UserBadge';
 import PropertyCard from './PropertyCard';
+import EditProfileModal from './EditProfileModal';
+import PropertyModal from './PropertyModal';
+import { Property, User } from '../types';
 
 const Profile: React.FC = () => {
-  const [user] = useState(mockUsers[0]); // Simulating logged-in user
-  const [isEditing, setIsEditing] = useState(false);
+  const [user, setUser] = useState(mockUsers[0]);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
   
   const userProperties = mockProperties.filter(property => property.ownerId === user.id);
   const shortlistedProperties = mockProperties.filter(property => 
     user.shortlistedProperties.includes(property.id)
   );
+
+  const handleProfileUpdate = (updatedData: Partial<User>) => {
+    setUser(prev => ({ ...prev, ...updatedData }));
+  };
+
+  const handlePropertyClick = (property: Property) => {
+    setSelectedProperty(property);
+  };
+
+  const handleShortlist = (propertyId: string) => {
+    setUser(prev => ({
+      ...prev,
+      shortlistedProperties: prev.shortlistedProperties.includes(propertyId)
+        ? prev.shortlistedProperties.filter(id => id !== propertyId)
+        : [...prev.shortlistedProperties, propertyId]
+    }));
+  };
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -27,7 +48,10 @@ const Profile: React.FC = () => {
                 alt={user.name}
                 className="w-32 h-32 rounded-full object-cover border-4 border-white bg-white"
               />
-              <button className="absolute bottom-2 right-2 p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors">
+              <button 
+                onClick={() => setIsEditingProfile(true)}
+                className="absolute bottom-2 right-2 p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors"
+              >
                 <Edit className="h-4 w-4" />
               </button>
             </div>
@@ -51,7 +75,7 @@ const Profile: React.FC = () => {
                   )}
                 </div>
                 <button
-                  onClick={() => setIsEditing(true)}
+                  onClick={() => setIsEditingProfile(true)}
                   className="flex items-center space-x-2 bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 transition-colors"
                 >
                   <Edit className="h-4 w-4" />
@@ -94,7 +118,11 @@ const Profile: React.FC = () => {
           <h2 className="text-xl font-bold text-gray-900 mb-6">My Properties</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {userProperties.map((property) => (
-              <PropertyCard key={property.id} property={property} />
+              <PropertyCard 
+                key={property.id} 
+                property={property}
+                onPropertyClick={handlePropertyClick}
+              />
             ))}
           </div>
         </div>
@@ -109,13 +137,29 @@ const Profile: React.FC = () => {
               <PropertyCard 
                 key={property.id} 
                 property={property}
-                onShortlist={(id) => console.log('Remove from shortlist:', id)}
+                onShortlist={handleShortlist}
+                onPropertyClick={handlePropertyClick}
                 isShortlisted={true}
               />
             ))}
           </div>
         </div>
       )}
+
+      <EditProfileModal
+        user={user}
+        isOpen={isEditingProfile}
+        onClose={() => setIsEditingProfile(false)}
+        onSave={handleProfileUpdate}
+      />
+
+      <PropertyModal
+        property={selectedProperty}
+        isOpen={!!selectedProperty}
+        onClose={() => setSelectedProperty(null)}
+        onShortlist={handleShortlist}
+        isShortlisted={selectedProperty ? user.shortlistedProperties.includes(selectedProperty.id) : false}
+      />
     </div>
   );
 };

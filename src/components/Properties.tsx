@@ -1,13 +1,17 @@
 
 import React, { useState } from 'react';
-import { Search, Filter } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { mockProperties } from '../data/mockData';
 import PropertyCard from './PropertyCard';
+import PropertyModal from './PropertyModal';
+import { Property } from '../types';
 
 const Properties: React.FC = () => {
   const [properties] = useState(mockProperties);
   const [filter, setFilter] = useState<'all' | 'rent' | 'sale'>('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
+  const [shortlistedProperties, setShortlistedProperties] = useState<string[]>([]);
 
   const filteredProperties = properties.filter(property => {
     const matchesFilter = filter === 'all' || property.type === filter;
@@ -15,6 +19,20 @@ const Properties: React.FC = () => {
                          property.location.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesFilter && matchesSearch;
   });
+
+  const handlePropertyClick = (property: Property) => {
+    setSelectedProperty(property);
+  };
+
+  const handleShortlist = (propertyId: string) => {
+    setShortlistedProperties(prev => {
+      if (prev.includes(propertyId)) {
+        return prev.filter(id => id !== propertyId);
+      } else {
+        return [...prev, propertyId];
+      }
+    });
+  };
 
   return (
     <div className="max-w-6xl mx-auto">
@@ -73,8 +91,9 @@ const Properties: React.FC = () => {
           <PropertyCard
             key={property.id}
             property={property}
-            onShortlist={(id) => console.log('Shortlist property:', id)}
-            isShortlisted={false}
+            onShortlist={handleShortlist}
+            onPropertyClick={handlePropertyClick}
+            isShortlisted={shortlistedProperties.includes(property.id)}
           />
         ))}
       </div>
@@ -84,6 +103,14 @@ const Properties: React.FC = () => {
           <p className="text-gray-500 text-lg">No properties found matching your criteria.</p>
         </div>
       )}
+
+      <PropertyModal
+        property={selectedProperty}
+        isOpen={!!selectedProperty}
+        onClose={() => setSelectedProperty(null)}
+        onShortlist={handleShortlist}
+        isShortlisted={selectedProperty ? shortlistedProperties.includes(selectedProperty.id) : false}
+      />
     </div>
   );
 };

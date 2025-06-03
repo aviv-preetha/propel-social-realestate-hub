@@ -3,20 +3,32 @@ import React, { useState } from 'react';
 import { UserPlus, Users, MessageCircle, Star } from 'lucide-react';
 import { mockUsers } from '../data/mockData';
 import UserBadge from './UserBadge';
+import { User } from '../types';
 
 const Network: React.FC = () => {
+  const [currentUser, setCurrentUser] = useState(mockUsers[0]);
   const [users] = useState(mockUsers);
   const [activeTab, setActiveTab] = useState<'discover' | 'connections'>('discover');
   
-  const currentUser = users[0]; // Simulating logged-in user
   const connections = users.filter(user => currentUser.connections.includes(user.id));
   const suggestions = users.filter(user => 
     user.id !== currentUser.id && !currentUser.connections.includes(user.id)
   );
 
   const handleConnect = (userId: string) => {
-    console.log('Connect with user:', userId);
-    // This would typically update the backend
+    setCurrentUser(prev => ({
+      ...prev,
+      connections: [...prev.connections, userId]
+    }));
+    console.log('Connected with user:', userId);
+  };
+
+  const handleDisconnect = (userId: string) => {
+    setCurrentUser(prev => ({
+      ...prev,
+      connections: prev.connections.filter(id => id !== userId)
+    }));
+    console.log('Disconnected from user:', userId);
   };
 
   return (
@@ -122,6 +134,12 @@ const Network: React.FC = () => {
                         <span>Rate</span>
                       </button>
                     )}
+                    <button
+                      onClick={() => handleDisconnect(user.id)}
+                      className="text-sm text-red-600 hover:text-red-800 transition-colors"
+                    >
+                      Disconnect
+                    </button>
                   </div>
                 </div>
               </div>

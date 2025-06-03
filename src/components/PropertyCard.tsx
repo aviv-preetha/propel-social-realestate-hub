@@ -6,12 +6,34 @@ import { Property } from '../types';
 interface PropertyCardProps {
   property: Property;
   onShortlist?: (propertyId: string) => void;
+  onPropertyClick?: (property: Property) => void;
   isShortlisted?: boolean;
 }
 
-const PropertyCard: React.FC<PropertyCardProps> = ({ property, onShortlist, isShortlisted }) => {
+const PropertyCard: React.FC<PropertyCardProps> = ({ 
+  property, 
+  onShortlist, 
+  onPropertyClick,
+  isShortlisted 
+}) => {
+  const handleCardClick = () => {
+    if (onPropertyClick) {
+      onPropertyClick(property);
+    }
+  };
+
+  const handleShortlistClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onShortlist) {
+      onShortlist(property.id);
+    }
+  };
+
   return (
-    <div className="bg-white rounded-xl shadow-sm border overflow-hidden hover:shadow-md transition-shadow">
+    <div 
+      className="bg-white rounded-xl shadow-sm border overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
+      onClick={handleCardClick}
+    >
       <div className="relative">
         <img
           src={property.images[0]}
@@ -29,7 +51,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onShortlist, isSh
         </div>
         {onShortlist && (
           <button
-            onClick={() => onShortlist(property.id)}
+            onClick={handleShortlistClick}
             className="absolute top-3 right-3 p-2 bg-white/90 backdrop-blur-sm rounded-full hover:bg-white transition-colors"
           >
             <Heart className={`h-5 w-5 ${isShortlisted ? 'fill-red-500 text-red-500' : 'text-gray-600'}`} />
