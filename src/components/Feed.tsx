@@ -1,8 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { Heart, MessageCircle, Share, Send, MoreHorizontal } from 'lucide-react';
 import UserBadge from './UserBadge';
 import UserMention from './UserMention';
+import ImageUpload from './ImageUpload';
 import { usePosts } from '@/hooks/usePosts';
 import { useProfile } from '@/hooks/useProfile';
 import { useConnections } from '@/hooks/useConnections';
@@ -21,6 +21,8 @@ const Feed: React.FC = () => {
   const { connections } = useConnections();
   const [newComments, setNewComments] = useState<Record<string, string>>({});
   const [newPostContent, setNewPostContent] = useState('');
+  const [newPostImages, setNewPostImages] = useState<string[]>([]);
+  const [showImageUpload, setShowImageUpload] = useState(false);
   const [profileCache, setProfileCache] = useState<Record<string, ProfileData>>({});
   const [taggedUsers, setTaggedUsers] = useState<Record<string, string[]>>({});
   const [postTaggedUsers, setPostTaggedUsers] = useState<string[]>([]);
@@ -102,9 +104,19 @@ const Feed: React.FC = () => {
     const content = newPostContent.trim();
     if (!content) return;
 
-    await createPost(content);
+    await createPost(content, newPostImages.length > 0 ? newPostImages : undefined);
     setNewPostContent('');
+    setNewPostImages([]);
+    setShowImageUpload(false);
     setPostTaggedUsers([]);
+  };
+
+  const handleImageUpload = (url: string) => {
+    setNewPostImages(prev => [...prev, url]);
+  };
+
+  const handleRemoveImage = (index: number) => {
+    setNewPostImages(prev => prev.filter((_, i) => i !== index));
   };
 
   const handlePostTagUser = (userId: string) => {
@@ -191,9 +203,43 @@ const Feed: React.FC = () => {
                 placeholder="What's on your mind about real estate?"
                 className="w-full p-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-left"
               />
+              
+              {/* Image Upload Section */}
+              {showImageUpload && (
+                <div className="mt-3 p-3 border border-gray-200 rounded-lg bg-gray-50">
+                  <ImageUpload
+                    bucket="post-images"
+                    onUpload={handleImageUpload}
+                    className="mb-3"
+                  />
+                  {newPostImages.length > 0 && (
+                    <div className="grid grid-cols-2 gap-2 mt-3">
+                      {newPostImages.map((image, index) => (
+                        <div key={index} className="relative">
+                          <img
+                            src={image}
+                            alt={`Upload ${index + 1}`}
+                            className="w-full h-32 object-cover rounded-lg"
+                          />
+                          <button
+                            onClick={() => handleRemoveImage(index)}
+                            className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="flex justify-between items-center mt-3">
                 <div className="flex space-x-2">
-                  <button className="text-gray-400 hover:text-gray-600">
+                  <button 
+                    onClick={() => setShowImageUpload(!showImageUpload)}
+                    className={`text-gray-400 hover:text-gray-600 transition-colors ${showImageUpload ? 'text-blue-600' : ''}`}
+                  >
                     📷 Photo
                   </button>
                   <button className="text-gray-400 hover:text-gray-600">

@@ -28,6 +28,11 @@ const ShortlistedProperties: React.FC = () => {
     shortlistedProperties.includes(property.id)
   );
 
+  const handleRemoveFromShortlist = async (propertyId: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+    await toggleShortlist(propertyId);
+  };
+
   if (loading) {
     return (
       <div className="p-6">
@@ -113,7 +118,7 @@ const ShortlistedProperties: React.FC = () => {
                         For {property.type === 'rent' ? 'Rent' : 'Sale'}
                       </span>
                       <button
-                        onClick={() => toggleShortlist(property.id)}
+                        onClick={(e) => handleRemoveFromShortlist(property.id, e)}
                         className="p-1 rounded-full text-red-500 hover:bg-red-50 transition-colors"
                         title="Remove from shortlist"
                       >
