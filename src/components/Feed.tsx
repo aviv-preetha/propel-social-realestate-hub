@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Heart, MessageCircle, Share, Send, MoreHorizontal } from 'lucide-react';
 import UserBadge from './UserBadge';
 import { usePosts } from '@/hooks/usePosts';
@@ -64,6 +65,24 @@ const Feed: React.FC = () => {
       return fallbackUser;
     }
   };
+
+  // Fetch all unique user IDs when posts change
+  useEffect(() => {
+    const userIds = new Set<string>();
+    posts.forEach(post => {
+      userIds.add(post.userId);
+      post.comments.forEach(comment => {
+        userIds.add(comment.userId);
+      });
+    });
+
+    // Fetch profiles for all users that aren't cached
+    Array.from(userIds).forEach(userId => {
+      if (!profileCache[userId]) {
+        getUserById(userId);
+      }
+    });
+  }, [posts, profileCache]);
 
   const handleCommentSubmit = async (postId: string) => {
     const content = newComments[postId]?.trim();
@@ -147,13 +166,8 @@ const Feed: React.FC = () => {
 
       {/* Posts */}
       {posts.map((post) => {
-        const [author, setAuthor] = useState<ProfileData | null>(null);
+        const author = profileCache[post.userId];
         
-        // Fetch author data when component mounts
-        React.useEffect(() => {
-          getUserById(post.userId).then(setAuthor);
-        }, [post.userId]);
-
         if (!author) {
           return (
             <div key={post.id} className="bg-white rounded-xl shadow-sm border p-6">
@@ -240,11 +254,7 @@ const Feed: React.FC = () => {
               <div className="px-6 pb-4 border-t border-gray-100">
                 <div className="space-y-3 mt-4">
                   {post.comments.map((comment) => {
-                    const [commentAuthor, setCommentAuthor] = useState<ProfileData | null>(null);
-                    
-                    React.useEffect(() => {
-                      getUserById(comment.userId).then(setCommentAuthor);
-                    }, [comment.userId]);
+                    const commentAuthor = profileCache[comment.userId];
 
                     if (!commentAuthor) return null;
 
