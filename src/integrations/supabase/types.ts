@@ -9,6 +9,47 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      chat_messages: {
+        Row: {
+          attachments: Json | null
+          created_at: string
+          id: string
+          message: string
+          model_used: string | null
+          property_id: string | null
+          response: string | null
+          user_id: string
+        }
+        Insert: {
+          attachments?: Json | null
+          created_at?: string
+          id?: string
+          message: string
+          model_used?: string | null
+          property_id?: string | null
+          response?: string | null
+          user_id: string
+        }
+        Update: {
+          attachments?: Json | null
+          created_at?: string
+          id?: string
+          message?: string
+          model_used?: string | null
+          property_id?: string | null
+          response?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       connections: {
         Row: {
           connected_user_id: string
@@ -167,6 +208,7 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          aviv_user_id: string | null
           badge: string | null
           created_at: string | null
           description: string | null
@@ -175,11 +217,14 @@ export type Database = {
           listing_preference: string | null
           location: string | null
           name: string
+          seloger_id: string | null
+          seloger_token: string | null
           updated_at: string | null
           user_id: string | null
         }
         Insert: {
           avatar_url?: string | null
+          aviv_user_id?: string | null
           badge?: string | null
           created_at?: string | null
           description?: string | null
@@ -188,11 +233,14 @@ export type Database = {
           listing_preference?: string | null
           location?: string | null
           name: string
+          seloger_id?: string | null
+          seloger_token?: string | null
           updated_at?: string | null
           user_id?: string | null
         }
         Update: {
           avatar_url?: string | null
+          aviv_user_id?: string | null
           badge?: string | null
           created_at?: string | null
           description?: string | null
@@ -201,6 +249,8 @@ export type Database = {
           listing_preference?: string | null
           location?: string | null
           name?: string
+          seloger_id?: string | null
+          seloger_token?: string | null
           updated_at?: string | null
           user_id?: string | null
         }

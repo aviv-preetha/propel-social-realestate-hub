@@ -119,8 +119,8 @@ const Feed: React.FC = () => {
   };
 
   const renderTextWithMentions = (text: string) => {
-    // Improved regex to match @ followed by names with spaces, stopping at word boundaries
-    const mentionRegex = /@([a-zA-Z]+(?:\s+[a-zA-Z]+)*)/g;
+    // Updated regex to match @ followed by names (first and last name), stopping at word boundaries
+    const mentionRegex = /@([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\b/g;
     const parts = [];
     let lastIndex = 0;
     let match;
