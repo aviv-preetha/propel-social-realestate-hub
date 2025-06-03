@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Heart, MessageCircle, Share, Send, Image as ImageIcon } from 'lucide-react';
+import { Heart, MessageCircle, Share } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
@@ -9,6 +9,24 @@ import UserMention from './UserMention';
 import ImageUpload from './ImageUpload';
 import { useToast } from '@/hooks/use-toast';
 
+interface PostProfile {
+  name: string;
+  avatar_url?: string;
+  badge: 'owner' | 'seeker' | 'business';
+  location?: string;
+}
+
+interface PostComment {
+  id: string;
+  content: string;
+  created_at: string;
+  profiles: {
+    name: string;
+    avatar_url?: string;
+    badge: 'owner' | 'seeker' | 'business';
+  };
+}
+
 interface Post {
   id: string;
   user_id: string;
@@ -16,23 +34,9 @@ interface Post {
   images?: string[];
   tagged_users?: string[];
   created_at: string;
-  profiles: {
-    name: string;
-    avatar_url?: string;
-    badge: 'owner' | 'seeker' | 'business';
-    location?: string;
-  };
+  profiles: PostProfile;
   post_likes: { user_id: string }[];
-  post_comments: {
-    id: string;
-    content: string;
-    created_at: string;
-    profiles: {
-      name: string;
-      avatar_url?: string;
-      badge: 'owner' | 'seeker' | 'business';
-    };
-  }[];
+  post_comments: PostComment[];
 }
 
 const Feed: React.FC = () => {
@@ -55,17 +59,35 @@ const Feed: React.FC = () => {
         .from('posts')
         .select(`
           *,
-          profiles (name, avatar_url, badge, location),
+          profiles!posts_user_id_fkey (name, avatar_url, badge, location),
           post_likes (user_id),
           post_comments (
             id, content, created_at,
-            profiles (name, avatar_url, badge)
+            profiles!post_comments_user_id_fkey (name, avatar_url, badge)
           )
         `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setPosts(data || []);
+      
+      if (data) {
+        // Type the data properly
+        const typedPosts: Post[] = data.map(post => ({
+          ...post,
+          profiles: {
+            ...post.profiles,
+            badge: post.profiles.badge as 'owner' | 'seeker' | 'business'
+          },
+          post_comments: post.post_comments.map((comment: any) => ({
+            ...comment,
+            profiles: {
+              ...comment.profiles,
+              badge: comment.profiles.badge as 'owner' | 'seeker' | 'business'
+            }
+          }))
+        }));
+        setPosts(typedPosts);
+      }
     } catch (error) {
       console.error('Error fetching posts:', error);
     } finally {

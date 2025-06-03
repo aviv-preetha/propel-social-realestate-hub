@@ -43,8 +43,13 @@ export function useProfile() {
 
       if (error && error.code !== 'PGRST116') {
         console.error('Error fetching profile:', error);
-      } else {
-        setProfile(data);
+      } else if (data) {
+        // Ensure badge is properly typed
+        const profileData: Profile = {
+          ...data,
+          badge: data.badge as 'owner' | 'seeker' | 'business'
+        };
+        setProfile(profileData);
       }
     } catch (error) {
       console.error('Error fetching profile:', error);
@@ -65,7 +70,14 @@ export function useProfile() {
         .single();
 
       if (error) throw error;
-      setProfile(data);
+      
+      if (data) {
+        const profileData: Profile = {
+          ...data,
+          badge: data.badge as 'owner' | 'seeker' | 'business'
+        };
+        setProfile(profileData);
+      }
       return { data, error: null };
     } catch (error) {
       console.error('Error updating profile:', error);

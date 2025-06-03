@@ -42,8 +42,16 @@ const UserMention: React.FC<UserMentionProps> = ({
         .limit(5);
 
       if (error) throw error;
-      setUsers(data || []);
-      setShowSuggestions(true);
+      
+      if (data) {
+        // Ensure badge is properly typed
+        const profilesData: Profile[] = data.map(profile => ({
+          ...profile,
+          badge: profile.badge as 'owner' | 'seeker' | 'business'
+        }));
+        setUsers(profilesData);
+        setShowSuggestions(true);
+      }
     } catch (error) {
       console.error('Error fetching users:', error);
     }

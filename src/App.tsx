@@ -1,12 +1,16 @@
 
-import { Suspense } from "react";
-import { useRoutes, Routes, Route, Navigate } from "react-router-dom";
+import { Suspense, useState } from "react";
+import { Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Auth from "./components/Auth";
 import Navigation from "./components/Navigation";
+import Feed from "./components/Feed";
+import Profile from "./components/Profile";
+import Network from "./components/Network";
+import Properties from "./components/Properties";
 import { Toaster } from "@/components/ui/toaster";
 import "./App.css";
 
@@ -14,6 +18,7 @@ const queryClient = new QueryClient();
 
 const App = () => {
   const { user, loading } = useAuth();
+  const [activeTab, setActiveTab] = useState('home');
 
   if (loading) {
     return (
@@ -32,16 +37,28 @@ const App = () => {
     );
   }
 
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'home':
+        return <Feed />;
+      case 'network':
+        return <Network />;
+      case 'properties':
+        return <Properties />;
+      case 'profile':
+        return <Profile />;
+      default:
+        return <Feed />;
+    }
+  };
+
   return (
     <QueryClientProvider client={queryClient}>
       <div className="min-h-screen bg-gray-50">
-        <Navigation />
+        <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
         <main className="pt-20 pb-8 px-4">
           <Suspense fallback={<div className="flex items-center justify-center h-32">Loading...</div>}>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+            {renderContent()}
           </Suspense>
         </main>
       </div>
