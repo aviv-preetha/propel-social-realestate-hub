@@ -1,9 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { Heart, MessageCircle, Share, Send, MoreHorizontal } from 'lucide-react';
 import UserBadge from './UserBadge';
+import UserMention from './UserMention';
 import { usePosts } from '@/hooks/usePosts';
 import { useProfile } from '@/hooks/useProfile';
+import { useConnections } from '@/hooks/useConnections';
 import { supabase } from '@/integrations/supabase/client';
 
 interface ProfileData {
@@ -16,9 +17,12 @@ interface ProfileData {
 const Feed: React.FC = () => {
   const { posts, loading, toggleLike, addComment, createPost } = usePosts();
   const { profile } = useProfile();
+  const { connections } = useConnections();
   const [newComments, setNewComments] = useState<Record<string, string>>({});
   const [newPostContent, setNewPostContent] = useState('');
   const [profileCache, setProfileCache] = useState<Record<string, ProfileData>>({});
+  const [taggedUsers, setTaggedUsers] = useState<Record<string, string[]>>({});
+  const [postTaggedUsers, setPostTaggedUsers] = useState<string[]>([]);
 
   const getUserById = async (userId: string): Promise<ProfileData> => {
     // Check cache first
@@ -90,6 +94,7 @@ const Feed: React.FC = () => {
 
     await addComment(postId, content);
     setNewComments(prev => ({ ...prev, [postId]: '' }));
+    setTaggedUsers(prev => ({ ...prev, [postId]: [] }));
   };
 
   const handleCreatePost = async () => {
@@ -98,6 +103,35 @@ const Feed: React.FC = () => {
 
     await createPost(content);
     setNewPostContent('');
+    setPostTaggedUsers([]);
+  };
+
+  const handlePostTagUser = (userId: string) => {
+    setPostTaggedUsers(prev => [...prev, userId]);
+  };
+
+  const handleCommentTagUser = (postId: string, userId: string) => {
+    setTaggedUsers(prev => ({
+      ...prev,
+      [postId]: [...(prev[postId] || []), userId]
+    }));
+  };
+
+  const renderTextWithMentions = (text: string) => {
+    const mentionRegex = /@(\w+)/g;
+    const parts = text.split(mentionRegex);
+    
+    return parts.map((part, index) => {
+      if (index % 2 === 1) {
+        // This is a mention (the captured group)
+        return (
+          <span key={index} className="text-blue-600 font-medium bg-blue-50 px-1 rounded">
+            @{part}
+          </span>
+        );
+      }
+      return part;
+    });
   };
 
   const formatTimestamp = (timestamp: Date) => {
@@ -135,12 +169,12 @@ const Feed: React.FC = () => {
               className="w-12 h-12 rounded-full object-cover"
             />
             <div className="flex-1">
-              <textarea
-                placeholder="What's on your mind about real estate?"
+              <UserMention
                 value={newPostContent}
-                onChange={(e) => setNewPostContent(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                rows={3}
+                onChange={setNewPostContent}
+                onTagUser={handlePostTagUser}
+                placeholder="What's on your mind about real estate?"
+                className="w-full p-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-left"
               />
               <div className="flex justify-between items-center mt-3">
                 <div className="flex space-x-2">
@@ -203,7 +237,7 @@ const Feed: React.FC = () => {
 
             {/* Post Content */}
             <div className="px-6 pb-4">
-              <p className="text-gray-800 leading-relaxed">{post.content}</p>
+              <p className="text-gray-800 leading-relaxed text-left">{renderTextWithMentions(post.content)}</p>
             </div>
 
             {/* Post Images */}
@@ -273,7 +307,7 @@ const Feed: React.FC = () => {
                                 {formatTimestamp(comment.timestamp)}
                               </span>
                             </div>
-                            <p className="text-sm text-gray-800">{comment.content}</p>
+                            <p className="text-sm text-gray-800 text-left">{renderTextWithMentions(comment.content)}</p>
                           </div>
                         </div>
                       </div>
@@ -293,21 +327,18 @@ const Feed: React.FC = () => {
                     className="w-8 h-8 rounded-full object-cover"
                   />
                   <div className="flex-1 flex space-x-2">
-                    <input
-                      type="text"
-                      placeholder="Write a comment..."
-                      value={newComments[post.id] || ''}
-                      onChange={(e) => setNewComments(prev => ({ 
-                        ...prev, 
-                        [post.id]: e.target.value 
-                      }))}
-                      onKeyPress={(e) => {
-                        if (e.key === 'Enter') {
-                          handleCommentSubmit(post.id);
-                        }
-                      }}
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-full text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
+                    <div className="flex-1">
+                      <UserMention
+                        value={newComments[post.id] || ''}
+                        onChange={(value) => setNewComments(prev => ({ 
+                          ...prev, 
+                          [post.id]: value 
+                        }))}
+                        onTagUser={(userId) => handleCommentTagUser(post.id, userId)}
+                        placeholder="Write a comment..."
+                        className="w-full px-3 py-2 border border-gray-300 rounded-full text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent text-left"
+                      />
+                    </div>
                     <button
                       onClick={() => handleCommentSubmit(post.id)}
                       className="px-4 py-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors"

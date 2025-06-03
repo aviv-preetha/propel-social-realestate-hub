@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { Profile } from '@/hooks/useProfile';
+import { useConnections } from '@/hooks/useConnections';
 
 interface UserMentionProps {
   value: string;
@@ -18,7 +17,8 @@ const UserMention: React.FC<UserMentionProps> = ({
   placeholder,
   className = '',
 }) => {
-  const [users, setUsers] = useState<Profile[]>([]);
+  const { connections } = useConnections();
+  const [filteredConnections, setFilteredConnections] = useState<typeof connections>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [cursorPosition, setCursorPosition] = useState(0);
   const [mentionQuery, setMentionQuery] = useState('');
@@ -26,36 +26,16 @@ const UserMention: React.FC<UserMentionProps> = ({
 
   useEffect(() => {
     if (mentionQuery.length > 0) {
-      fetchUsers(mentionQuery);
+      const filtered = connections.filter(connection => 
+        connection.name.toLowerCase().includes(mentionQuery.toLowerCase())
+      ).slice(0, 5);
+      setFilteredConnections(filtered);
+      setShowSuggestions(filtered.length > 0);
     } else {
-      setUsers([]);
+      setFilteredConnections([]);
       setShowSuggestions(false);
     }
-  }, [mentionQuery]);
-
-  const fetchUsers = async (query: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .ilike('name', `%${query}%`)
-        .limit(5);
-
-      if (error) throw error;
-      
-      if (data) {
-        // Ensure badge is properly typed
-        const profilesData: Profile[] = data.map(profile => ({
-          ...profile,
-          badge: profile.badge as 'owner' | 'seeker' | 'business'
-        }));
-        setUsers(profilesData);
-        setShowSuggestions(true);
-      }
-    } catch (error) {
-      console.error('Error fetching users:', error);
-    }
-  };
+  }, [mentionQuery, connections]);
 
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newValue = e.target.value;
@@ -76,7 +56,7 @@ const UserMention: React.FC<UserMentionProps> = ({
     }
   };
 
-  const selectUser = (user: Profile) => {
+  const selectUser = (user: typeof connections[0]) => {
     const beforeCursor = value.substring(0, cursorPosition);
     const afterCursor = value.substring(cursorPosition);
     const mentionMatch = beforeCursor.match(/@(\w*)$/);
@@ -89,7 +69,7 @@ const UserMention: React.FC<UserMentionProps> = ({
         afterCursor;
       
       onChange(newValue);
-      onTagUser(user.user_id);
+      onTagUser(user.id);
       setShowSuggestions(false);
       setMentionQuery('');
       
@@ -113,9 +93,9 @@ const UserMention: React.FC<UserMentionProps> = ({
         rows={3}
       />
       
-      {showSuggestions && users.length > 0 && (
+      {showSuggestions && filteredConnections.length > 0 && (
         <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-40 overflow-y-auto">
-          {users.map((user) => (
+          {filteredConnections.map((user) => (
             <button
               key={user.id}
               onClick={() => selectUser(user)}
