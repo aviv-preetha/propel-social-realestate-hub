@@ -98,10 +98,10 @@ const BusinessReviews: React.FC<BusinessReviewsProps> = ({ businessId }) => {
                 alt={review.rater.name}
                 className="w-10 h-10 rounded-full object-cover"
               />
-              <div className="flex-1">
-                <div className="flex items-center justify-between mb-2">
-                  <div>
-                    <h4 className="font-medium text-gray-900">{review.rater.name}</h4>
+              <div className="flex-1 text-left">
+                <div className="flex items-start justify-between mb-2">
+                  <div className="text-left">
+                    <h4 className="font-medium text-gray-900 text-left">{review.rater.name}</h4>
                     <div className="flex items-center space-x-2 mt-1">
                       <StarRating rating={review.rating} readonly size="sm" />
                       <span className="text-sm text-gray-500">
@@ -111,7 +111,7 @@ const BusinessReviews: React.FC<BusinessReviewsProps> = ({ businessId }) => {
                   </div>
                 </div>
                 {review.comment && (
-                  <p className="text-gray-700 leading-relaxed">{review.comment}</p>
+                  <p className="text-gray-700 leading-relaxed text-left">{review.comment}</p>
                 )}
               </div>
             </div>

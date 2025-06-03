@@ -22,6 +22,7 @@ const Profile: React.FC = () => {
   const { fetchBusinessRatings, getRatingStats } = useBusinessRatings();
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [showReviews, setShowReviews] = useState(false);
   const { toast } = useToast();
 
   // Fetch ratings if current user is a business
@@ -120,8 +121,8 @@ const Profile: React.FC = () => {
           <div className="flex-1">
             <div className="flex items-start justify-between">
               <div>
-                <div className="flex items-center gap-3 mb-2">
-                  <h1 className="text-3xl font-bold text-gray-900">{profile.name}</h1>
+                <h1 className="text-3xl font-bold text-gray-900 mb-3">{profile.name}</h1>
+                <div className="flex items-center gap-3 mb-4">
                   <UserBadge badge={profile.badge} size="md" />
                   {ratingStats && ratingStats.totalRatings > 0 && (
                     <div className="flex items-center space-x-2">
@@ -179,7 +180,12 @@ const Profile: React.FC = () => {
             <p className="text-gray-600">Shortlisted</p>
           </div>
         ) : (
-          <div className="bg-white rounded-xl shadow-sm border p-6 text-center">
+          <div 
+            className={`bg-white rounded-xl shadow-sm border p-6 text-center cursor-pointer transition-all duration-200 ${
+              showReviews ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:shadow-md'
+            }`}
+            onClick={() => setShowReviews(!showReviews)}
+          >
             <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-3">
               <Star className="h-6 w-6 text-yellow-600" />
             </div>
@@ -199,8 +205,8 @@ const Profile: React.FC = () => {
         </div>
       </div>
 
-      {/* Business Reviews Section */}
-      {isBusiness && (
+      {/* Business Reviews Section - Only show when clicked */}
+      {isBusiness && showReviews && (
         <div className="bg-white rounded-xl shadow-sm border">
           <div className="p-6 border-b">
             <h2 className="text-xl font-semibold text-gray-900">Customer Reviews</h2>
