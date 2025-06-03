@@ -1,13 +1,13 @@
 
 import React, { useState } from 'react';
-import { User } from '../types';
+import { Profile } from '@/hooks/useProfile';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 
 interface EditProfileModalProps {
-  user: User;
+  user: Profile;
   isOpen: boolean;
   onClose: () => void;
-  onSave: (updatedUser: Partial<User>) => void;
+  onSave: (updatedUser: Partial<Profile>) => void;
 }
 
 const EditProfileModal: React.FC<EditProfileModalProps> = ({ 
@@ -18,9 +18,9 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
 }) => {
   const [formData, setFormData] = useState({
     name: user.name,
-    description: user.description,
-    location: user.location,
-    listingPreference: user.listingPreference || '',
+    description: user.description || '',
+    location: user.location || '',
+    listing_preference: user.listing_preference || '',
     badge: user.badge
   });
 
@@ -60,7 +60,6 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
               value={formData.location}
               onChange={(e) => setFormData({ ...formData, location: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              required
             />
           </div>
 
@@ -88,7 +87,6 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               rows={4}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              required
             />
           </div>
 
@@ -98,8 +96,8 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
             </label>
             <input
               type="text"
-              value={formData.listingPreference}
-              onChange={(e) => setFormData({ ...formData, listingPreference: e.target.value })}
+              value={formData.listing_preference}
+              onChange={(e) => setFormData({ ...formData, listing_preference: e.target.value })}
               placeholder="e.g., 2-3 bedrooms, near schools"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
