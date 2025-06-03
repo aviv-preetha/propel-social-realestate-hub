@@ -95,7 +95,7 @@ const Properties: React.FC = () => {
               property={property}
               onShortlist={toggleShortlist}
               isShortlisted={isShortlisted(property.id)}
-              onClick={() => setSelectedProperty(property)}
+              onPropertyClick={() => setSelectedProperty(property)}
               viewMode={viewMode}
             />
           ))}

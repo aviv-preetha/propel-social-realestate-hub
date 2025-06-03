@@ -27,26 +27,32 @@ export function useConnections() {
     if (!user) return;
 
     try {
-      // Fetch user's connections
+      // First, get the user IDs of connected users
       const { data: connectionsData, error: connectionsError } = await supabase
         .from('connections')
-        .select(`
-          connected_user_id,
-          profiles!connections_connected_user_id_fkey(*)
-        `)
+        .select('connected_user_id')
         .eq('user_id', user.id)
         .eq('status', 'accepted');
 
       if (connectionsError) throw connectionsError;
 
-      const connectedProfiles = connectionsData
-        .map(conn => conn.profiles)
-        .filter(Boolean) as Profile[];
+      const connectedUserIds = connectionsData.map(conn => conn.connected_user_id);
+
+      // Then fetch the profiles for those users
+      let connectedProfiles: Profile[] = [];
+      if (connectedUserIds.length > 0) {
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('*')
+          .in('user_id', connectedUserIds);
+
+        if (profilesError) throw profilesError;
+        connectedProfiles = profilesData as Profile[];
+      }
 
       setConnections(connectedProfiles);
 
       // Fetch all profiles except user and existing connections
-      const connectedUserIds = connectedProfiles.map(p => p.user_id);
       const excludeIds = [user.id, ...connectedUserIds];
 
       const { data: allProfiles, error: profilesError } = await supabase
