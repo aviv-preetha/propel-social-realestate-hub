@@ -19,6 +19,13 @@ const ShortlistedProperties: React.FC<ShortlistedPropertiesProps> = ({ onCountUp
     setLoading(false);
   }, [shortlistedProperties]);
 
+  // Trigger count update whenever shortlistedProperties changes
+  useEffect(() => {
+    if (onCountUpdate) {
+      onCountUpdate();
+    }
+  }, [shortlistedProperties, onCountUpdate]);
+
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -34,10 +41,6 @@ const ShortlistedProperties: React.FC<ShortlistedPropertiesProps> = ({ onCountUp
   const handleRemoveFromShortlist = async (propertyId: string, event: React.MouseEvent) => {
     event.stopPropagation();
     await toggleShortlist(propertyId);
-    // Trigger callback to update parent component
-    if (onCountUpdate) {
-      onCountUpdate();
-    }
   };
 
   if (loading) {
