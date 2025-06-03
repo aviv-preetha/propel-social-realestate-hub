@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Edit, MapPin, Heart, Star, Building, Camera } from 'lucide-react';
+import { Edit, MapPin, Heart, Star, Building, Camera, MessageSquare } from 'lucide-react';
 import { useProfile } from '@/hooks/useProfile';
 import { useAuth } from '@/hooks/useAuth';
 import { useConnections } from '@/hooks/useConnections';
@@ -11,6 +11,7 @@ import UserBadge from './UserBadge';
 import StarRating from './StarRating';
 import ImageUpload from './ImageUpload';
 import EditProfileModal from './EditProfileModal';
+import BusinessReviews from './BusinessReviews';
 import { useToast } from '@/hooks/use-toast';
 
 const Profile: React.FC = () => {
@@ -76,6 +77,7 @@ const Profile: React.FC = () => {
   };
 
   const ratingStats = profile.badge === 'business' ? getRatingStats(profile.id) : null;
+  const isBusiness = profile.badge === 'business';
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -137,7 +139,7 @@ const Profile: React.FC = () => {
                 <p className="text-gray-700 leading-relaxed mb-4">
                   {profile.description || 'No description provided'}
                 </p>
-                {profile.listing_preference && (
+                {profile.listing_preference && !isBusiness && (
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                     <p className="text-blue-800 font-medium text-sm">Listing Preference:</p>
                     <p className="text-blue-700 text-sm">{profile.listing_preference}</p>
@@ -167,21 +169,45 @@ const Profile: React.FC = () => {
           <h3 className="text-2xl font-bold text-gray-900">0</h3>
           <p className="text-gray-600">Properties Listed</p>
         </div>
-        <div className="bg-white rounded-xl shadow-sm border p-6 text-center">
-          <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
-            <Heart className="h-6 w-6 text-green-600" />
+        
+        {!isBusiness ? (
+          <div className="bg-white rounded-xl shadow-sm border p-6 text-center">
+            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+              <Heart className="h-6 w-6 text-green-600" />
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900">{shortlistedProperties.length}</h3>
+            <p className="text-gray-600">Shortlisted</p>
           </div>
-          <h3 className="text-2xl font-bold text-gray-900">{shortlistedProperties.length}</h3>
-          <p className="text-gray-600">Shortlisted</p>
-        </div>
+        ) : (
+          <div className="bg-white rounded-xl shadow-sm border p-6 text-center">
+            <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-3">
+              <Star className="h-6 w-6 text-yellow-600" />
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900">
+              {ratingStats ? ratingStats.totalRatings : 0}
+            </h3>
+            <p className="text-gray-600">Reviews</p>
+          </div>
+        )}
+        
         <div className="bg-white rounded-xl shadow-sm border p-6 text-center">
-          <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-3">
-            <Star className="h-6 w-6 text-yellow-600" />
+          <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
+            <MessageSquare className="h-6 w-6 text-purple-600" />
           </div>
           <h3 className="text-2xl font-bold text-gray-900">{connections.length}</h3>
           <p className="text-gray-600">Connections</p>
         </div>
       </div>
+
+      {/* Business Reviews Section */}
+      {isBusiness && (
+        <div className="bg-white rounded-xl shadow-sm border">
+          <div className="p-6 border-b">
+            <h2 className="text-xl font-semibold text-gray-900">Customer Reviews</h2>
+          </div>
+          <BusinessReviews businessId={profile.id} />
+        </div>
+      )}
 
       <EditProfileModal
         user={profile}
