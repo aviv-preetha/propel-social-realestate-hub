@@ -12,7 +12,7 @@ import EditProfileModal from './EditProfileModal';
 import { useToast } from '@/hooks/use-toast';
 
 const Profile: React.FC = () => {
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const { profile, updateProfile } = useProfile();
   const { connections } = useConnections();
   const { shortlistedProperties } = useProperties();
@@ -65,10 +65,6 @@ const Profile: React.FC = () => {
     }
   };
 
-  const handleSignOut = async () => {
-    await signOut();
-  };
-
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Profile Header */}
@@ -76,24 +72,27 @@ const Profile: React.FC = () => {
         <div className="flex items-start space-x-8">
           <div className="relative">
             {isUploadingAvatar ? (
-              <div className="w-40 h-40 rounded-full bg-gray-200 border-4 border-white flex items-center justify-center">
+              <div className="w-48 h-48 rounded-full bg-gray-200 flex items-center justify-center">
                 <p className="text-sm text-gray-500">Uploading...</p>
               </div>
             ) : (
-              <div className="relative">
+              <div className="relative w-48 h-48">
                 <img
                   src={profile.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.name}`}
                   alt={profile.name}
-                  className="w-40 h-40 rounded-full object-cover border-4 border-white shadow-lg"
+                  className="w-48 h-48 rounded-full object-cover shadow-lg"
                 />
-                <div className="absolute bottom-2 right-2">
+                <div className="absolute bottom-2 right-2 w-12 h-12">
                   <ImageUpload
                     bucket="avatars"
                     onUpload={handleAvatarUpload}
                     isAvatar={true}
-                    className="w-10 h-10 bg-white rounded-full shadow-lg border-2 border-white flex items-center justify-center hover:bg-gray-50 transition-colors"
+                    isOverlay={true}
+                    className="w-full h-full bg-white rounded-full shadow-lg border-2 border-white hover:bg-gray-50 transition-colors"
                   >
-                    <Camera className="h-5 w-5 text-gray-600" />
+                    <div className="w-full h-full flex items-center justify-center">
+                      <Camera className="h-5 w-5 text-gray-600" />
+                    </div>
                   </ImageUpload>
                 </div>
               </div>
@@ -128,12 +127,6 @@ const Profile: React.FC = () => {
                 >
                   <Edit className="h-4 w-4" />
                   <span>Edit Profile</span>
-                </button>
-                <button
-                  onClick={handleSignOut}
-                  className="flex items-center space-x-2 bg-red-100 text-red-700 px-4 py-2 rounded-lg font-medium hover:bg-red-200 transition-colors"
-                >
-                  <span>Sign Out</span>
                 </button>
               </div>
             </div>

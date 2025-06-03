@@ -12,6 +12,7 @@ interface ImageUploadProps {
   currentImage?: string;
   isAvatar?: boolean;
   children?: React.ReactNode;
+  isOverlay?: boolean;
 }
 
 const ImageUpload: React.FC<ImageUploadProps> = ({
@@ -21,6 +22,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
   currentImage,
   isAvatar = false,
   children,
+  isOverlay = false,
 }) => {
   const [uploading, setUploading] = useState(false);
   const { user } = useAuth();
@@ -72,7 +74,9 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
         accept="image/*"
         onChange={handleFileChange}
         disabled={uploading}
-        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
+        className={`absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed ${
+          isOverlay ? 'z-10' : ''
+        }`}
         id={`image-upload-${bucket}`}
       />
       <label
@@ -81,7 +85,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
           uploading ? 'opacity-50 cursor-not-allowed' : ''
         } ${!children ? `border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 transition-colors ${
           isAvatar ? 'w-32 h-32 rounded-full' : 'h-32'
-        }` : ''}`}
+        }` : ''} ${isOverlay ? 'w-full h-full' : ''}`}
       >
         {children ? (
           children
