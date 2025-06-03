@@ -34,13 +34,15 @@ export function useAuth() {
   };
 
   const signUp = async (email: string, password: string, metadata?: any) => {
-    const { data, error } = await supabase.auth.signUp({
+    const resp = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: metadata,
       },
     });
+    console.log("got resp from supabase.auth.signUp", resp);
+    const { data, error } = resp;
     return { data, error };
   };
 
