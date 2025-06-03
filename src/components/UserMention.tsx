@@ -91,7 +91,8 @@ const UserMention: React.FC<UserMentionProps> = ({
         onChange={handleTextChange}
         placeholder={placeholder}
         className={className}
-        rows={3}
+        rows={1}
+        style={{ resize: 'none' }}
       />
       
       {showSuggestions && filteredConnections.length > 0 && (
