@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Heart, MessageCircle, Share } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -55,40 +54,58 @@ const Feed: React.FC = () => {
 
   const fetchPosts = async () => {
     try {
-      const { data, error } = await supabase
+      // First, get posts with their likes and comments
+      const { data: postsData, error: postsError } = await supabase
         .from('posts')
         .select(`
           *,
-          profiles!posts_user_id_fkey (name, avatar_url, badge, location),
           post_likes (user_id),
           post_comments (
-            id, content, created_at,
-            profiles!post_comments_user_id_fkey (name, avatar_url, badge)
+            id, content, created_at, user_id
           )
         `)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      
-      if (data) {
-        // Type the data properly with null checks
-        const typedPosts: Post[] = data.map(post => {
-          // Handle profiles data - ensure it exists and has the right structure
-          const profileData = post.profiles;
-          if (!profileData || typeof profileData !== 'object') {
-            throw new Error('Profile data is missing for post');
-          }
+      if (postsError) throw postsError;
 
+      if (postsData) {
+        // Get all unique user IDs from posts and comments
+        const userIds = new Set<string>();
+        postsData.forEach(post => {
+          userIds.add(post.user_id);
+          post.post_comments?.forEach((comment: any) => {
+            userIds.add(comment.user_id);
+          });
+        });
+
+        // Fetch profiles for all users
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('user_id, name, avatar_url, badge, location')
+          .in('user_id', Array.from(userIds));
+
+        if (profilesError) throw profilesError;
+
+        // Create a map of user_id to profile
+        const profilesMap = new Map();
+        profilesData?.forEach(profile => {
+          profilesMap.set(profile.user_id, profile);
+        });
+
+        // Combine posts with profile data
+        const typedPosts: Post[] = postsData.map(post => {
+          const postProfile = profilesMap.get(post.user_id);
+          
           return {
             ...post,
             profiles: {
-              name: profileData!!.name || 'Unknown User',
-              avatar_url: profileData!!.avatar_url,
-              badge: (profileData!!.badge as 'owner' | 'seeker' | 'business') || 'seeker',
-              location: profileData!!.location
+              name: postProfile?.name || 'Unknown User',
+              avatar_url: postProfile?.avatar_url,
+              badge: (postProfile?.badge as 'owner' | 'seeker' | 'business') || 'seeker',
+              location: postProfile?.location
             },
             post_comments: (post.post_comments || []).map((comment: any) => {
-              const commentProfile = comment.profiles;
+              const commentProfile = profilesMap.get(comment.user_id);
               return {
                 ...comment,
                 profiles: {
