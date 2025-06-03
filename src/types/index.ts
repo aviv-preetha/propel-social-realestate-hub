@@ -23,7 +23,7 @@ export interface Property {
   bathrooms: number;
   area: number;
   images: string[];
-  ownerId: string;
+  owner_id: string; // Changed from ownerId to match database
   features: string[];
 }
 

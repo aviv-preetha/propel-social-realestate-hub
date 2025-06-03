@@ -1,8 +1,22 @@
 
 import React from 'react';
 import { X, MapPin, Bed, Bath, Square, Heart } from 'lucide-react';
-import { Property } from '../types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
+
+interface Property {
+  id: string;
+  title: string;
+  description: string;
+  price: number;
+  type: 'rent' | 'sale';
+  location: string;
+  bedrooms: number;
+  bathrooms: number;
+  area: number;
+  images: string[];
+  owner_id: string;
+  features: string[];
+}
 
 interface PropertyModalProps {
   property: Property | null;
@@ -21,6 +35,11 @@ const PropertyModal: React.FC<PropertyModalProps> = ({
 }) => {
   if (!property) return null;
 
+  // Use a placeholder image if no images are available
+  const propertyImages = property.images && property.images.length > 0 
+    ? property.images 
+    : ['/placeholder.svg'];
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -31,7 +50,7 @@ const PropertyModal: React.FC<PropertyModalProps> = ({
         <div className="space-y-6">
           {/* Image Gallery */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {property.images.map((image, index) => (
+            {propertyImages.map((image, index) => (
               <img
                 key={index}
                 src={image}

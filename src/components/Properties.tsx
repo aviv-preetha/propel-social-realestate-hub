@@ -49,10 +49,23 @@ const Properties: React.FC = () => {
       if (error) throw error;
 
       if (data) {
-        setProperties(data.map(property => ({
-          ...property,
-          ownerId: property.owner_id
-        })));
+        // Map the data to ensure proper types and handle null values
+        const mappedProperties: Property[] = data.map(property => ({
+          id: property.id,
+          title: property.title,
+          description: property.description || '',
+          price: property.price,
+          type: property.type as 'rent' | 'sale', // Type assertion since we know it should be one of these
+          location: property.location,
+          bedrooms: property.bedrooms || 0,
+          bathrooms: property.bathrooms || 0,
+          area: property.area || 0,
+          images: property.images || [],
+          owner_id: property.owner_id,
+          features: property.features || []
+        }));
+        
+        setProperties(mappedProperties);
       }
     } catch (error) {
       console.error('Error fetching properties:', error);
