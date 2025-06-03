@@ -1,17 +1,84 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search } from 'lucide-react';
-import { mockProperties } from '../data/mockData';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 import PropertyCard from './PropertyCard';
 import PropertyModal from './PropertyModal';
-import { Property } from '../types';
+import { useToast } from '@/hooks/use-toast';
+
+interface Property {
+  id: string;
+  title: string;
+  description: string;
+  price: number;
+  type: 'rent' | 'sale';
+  location: string;
+  bedrooms: number;
+  bathrooms: number;
+  area: number;
+  images: string[];
+  owner_id: string;
+  features: string[];
+}
 
 const Properties: React.FC = () => {
-  const [properties] = useState(mockProperties);
+  const { user } = useAuth();
+  const [properties, setProperties] = useState<Property[]>([]);
   const [filter, setFilter] = useState<'all' | 'rent' | 'sale'>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
   const [shortlistedProperties, setShortlistedProperties] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    fetchProperties();
+    if (user) {
+      fetchShortlistedProperties();
+    }
+  }, [user]);
+
+  const fetchProperties = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('properties')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      if (data) {
+        setProperties(data.map(property => ({
+          ...property,
+          ownerId: property.owner_id
+        })));
+      }
+    } catch (error) {
+      console.error('Error fetching properties:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchShortlistedProperties = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('shortlisted_properties')
+        .select('property_id')
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      if (data) {
+        setShortlistedProperties(data.map(item => item.property_id));
+      }
+    } catch (error) {
+      console.error('Error fetching shortlisted properties:', error);
+    }
+  };
 
   const filteredProperties = properties.filter(property => {
     const matchesFilter = filter === 'all' || property.type === filter;
@@ -24,15 +91,71 @@ const Properties: React.FC = () => {
     setSelectedProperty(property);
   };
 
-  const handleShortlist = (propertyId: string) => {
-    setShortlistedProperties(prev => {
-      if (prev.includes(propertyId)) {
-        return prev.filter(id => id !== propertyId);
+  const handleShortlist = async (propertyId: string) => {
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to shortlist properties.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const isShortlisted = shortlistedProperties.includes(propertyId);
+
+      if (isShortlisted) {
+        // Remove from shortlist
+        const { error } = await supabase
+          .from('shortlisted_properties')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('property_id', propertyId);
+
+        if (error) throw error;
+
+        setShortlistedProperties(prev => prev.filter(id => id !== propertyId));
+        
+        toast({
+          title: "Removed from shortlist",
+          description: "Property has been removed from your shortlist.",
+        });
       } else {
-        return [...prev, propertyId];
+        // Add to shortlist
+        const { error } = await supabase
+          .from('shortlisted_properties')
+          .insert({
+            user_id: user.id,
+            property_id: propertyId,
+          });
+
+        if (error) throw error;
+
+        setShortlistedProperties(prev => [...prev, propertyId]);
+        
+        toast({
+          title: "Added to shortlist",
+          description: "Property has been added to your shortlist.",
+        });
       }
-    });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="max-w-6xl mx-auto">
+        <div className="bg-white rounded-xl shadow-sm border p-6 text-center">
+          <p className="text-gray-500">Loading properties...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-6xl mx-auto">

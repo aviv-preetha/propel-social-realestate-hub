@@ -1,7 +1,21 @@
 
 import React from 'react';
 import { Heart, MapPin, Bed, Bath, Square } from 'lucide-react';
-import { Property } from '../types';
+
+interface Property {
+  id: string;
+  title: string;
+  description: string;
+  price: number;
+  type: 'rent' | 'sale';
+  location: string;
+  bedrooms: number;
+  bathrooms: number;
+  area: number;
+  images: string[];
+  owner_id: string;
+  features: string[];
+}
 
 interface PropertyCardProps {
   property: Property;
@@ -29,6 +43,11 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
     }
   };
 
+  // Use a placeholder image if no images are available
+  const imageUrl = property.images && property.images.length > 0 
+    ? property.images[0] 
+    : '/placeholder.svg';
+
   return (
     <div 
       className="bg-white rounded-xl shadow-sm border overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
@@ -36,7 +55,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
     >
       <div className="relative">
         <img
-          src={property.images[0]}
+          src={imageUrl}
           alt={property.title}
           className="w-full h-48 object-cover"
         />
@@ -93,7 +112,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
         </div>
         
         <div className="flex flex-wrap gap-2 mb-4">
-          {property.features.slice(0, 3).map((feature, index) => (
+          {property.features && property.features.slice(0, 3).map((feature, index) => (
             <span
               key={index}
               className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full"
@@ -101,7 +120,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
               {feature}
             </span>
           ))}
-          {property.features.length > 3 && (
+          {property.features && property.features.length > 3 && (
             <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full">
               +{property.features.length - 3} more
             </span>
