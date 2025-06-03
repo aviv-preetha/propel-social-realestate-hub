@@ -82,10 +82,10 @@ const Feed: React.FC = () => {
           return {
             ...post,
             profiles: {
-              name: profileData.name || 'Unknown User',
-              avatar_url: profileData.avatar_url,
-              badge: (profileData.badge as 'owner' | 'seeker' | 'business') || 'seeker',
-              location: profileData.location
+              name: profileData?.name || 'Unknown User',
+              avatar_url: profileData?.avatar_url,
+              badge: (profileData?.badge as 'owner' | 'seeker' | 'business') || 'seeker',
+              location: profileData?.location
             },
             post_comments: (post.post_comments || []).map((comment: any) => {
               const commentProfile = comment.profiles;
