@@ -14,19 +14,18 @@ import EditProfileModal from './EditProfileModal';
 import BusinessReviews from './BusinessReviews';
 import UserConnections from './UserConnections';
 import UserProperties from './UserProperties';
+import ShortlistedProperties from './ShortlistedProperties';
 import { useToast } from '@/hooks/use-toast';
 
 const Profile: React.FC = () => {
   const { user } = useAuth();
   const { profile, updateProfile } = useProfile();
   const { connections } = useConnections();
-  const { shortlistedProperties } = useProperties();
+  const { properties, shortlistedProperties } = useProperties();
   const { fetchBusinessRatings, getRatingStats } = useBusinessRatings();
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
-  const [showReviews, setShowReviews] = useState(false);
-  const [showConnections, setShowConnections] = useState(false);
-  const [showProperties, setShowProperties] = useState(false);
+  const [activeSection, setActiveSection] = useState<'reviews' | 'connections' | 'properties' | 'shortlisted' | null>(null);
   const { toast } = useToast();
 
   // Fetch ratings if current user is a business
@@ -81,9 +80,17 @@ const Profile: React.FC = () => {
     }
   };
 
+  const handleSectionToggle = (section: 'reviews' | 'connections' | 'properties' | 'shortlisted') => {
+    setActiveSection(activeSection === section ? null : section);
+  };
+
   const ratingStats = profile.badge === 'business' ? getRatingStats(profile.id) : null;
   const isBusiness = profile.badge === 'business';
   const isOwner = profile.badge === 'owner';
+  const isSeeker = profile.badge === 'seeker';
+
+  // Count properties owned by this user
+  const userPropertiesCount = properties.filter(property => property.owner_id === profile.id).length;
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -168,33 +175,42 @@ const Profile: React.FC = () => {
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div 
-          className={`bg-white rounded-xl shadow-sm border p-6 text-center cursor-pointer transition-all duration-200 ${
-            showProperties ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:shadow-md'
-          }`}
-          onClick={() => setShowProperties(!showProperties)}
-        >
-          <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
-            <Building className="h-6 w-6 text-blue-600" />
+        {(isOwner || isBusiness) && (
+          <div 
+            className={`bg-white rounded-xl shadow-sm border p-6 text-center cursor-pointer transition-all duration-200 ${
+              activeSection === 'properties' ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:shadow-md'
+            }`}
+            onClick={() => handleSectionToggle('properties')}
+          >
+            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+              <Building className="h-6 w-6 text-blue-600" />
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900">{userPropertiesCount}</h3>
+            <p className="text-gray-600">Properties Listed</p>
           </div>
-          <h3 className="text-2xl font-bold text-gray-900">0</h3>
-          <p className="text-gray-600">Properties Listed</p>
-        </div>
+        )}
         
-        {!isBusiness ? (
-          <div className="bg-white rounded-xl shadow-sm border p-6 text-center">
+        {isSeeker && (
+          <div 
+            className={`bg-white rounded-xl shadow-sm border p-6 text-center cursor-pointer transition-all duration-200 ${
+              activeSection === 'shortlisted' ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:shadow-md'
+            }`}
+            onClick={() => handleSectionToggle('shortlisted')}
+          >
             <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
               <Heart className="h-6 w-6 text-green-600" />
             </div>
             <h3 className="text-2xl font-bold text-gray-900">{shortlistedProperties.length}</h3>
             <p className="text-gray-600">Shortlisted</p>
           </div>
-        ) : (
+        )}
+
+        {isBusiness && (
           <div 
             className={`bg-white rounded-xl shadow-sm border p-6 text-center cursor-pointer transition-all duration-200 ${
-              showReviews ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:shadow-md'
+              activeSection === 'reviews' ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:shadow-md'
             }`}
-            onClick={() => setShowReviews(!showReviews)}
+            onClick={() => handleSectionToggle('reviews')}
           >
             <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-3">
               <Star className="h-6 w-6 text-yellow-600" />
@@ -208,9 +224,9 @@ const Profile: React.FC = () => {
         
         <div 
           className={`bg-white rounded-xl shadow-sm border p-6 text-center cursor-pointer transition-all duration-200 ${
-            showConnections ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:shadow-md'
+            activeSection === 'connections' ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:shadow-md'
           }`}
-          onClick={() => setShowConnections(!showConnections)}
+          onClick={() => handleSectionToggle('connections')}
         >
           <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
             <MessageSquare className="h-6 w-6 text-purple-600" />
@@ -220,8 +236,8 @@ const Profile: React.FC = () => {
         </div>
       </div>
 
-      {/* Business Reviews Section - Only show when clicked */}
-      {isBusiness && showReviews && (
+      {/* Business Reviews Section */}
+      {isBusiness && activeSection === 'reviews' && (
         <div className="bg-white rounded-xl shadow-sm border">
           <div className="p-6 border-b">
             <h2 className="text-xl font-semibold text-gray-900">Customer Reviews</h2>
@@ -230,8 +246,8 @@ const Profile: React.FC = () => {
         </div>
       )}
 
-      {/* Connections Section - Only show when clicked */}
-      {showConnections && (
+      {/* Connections Section */}
+      {activeSection === 'connections' && (
         <div className="bg-white rounded-xl shadow-sm border">
           <div className="p-6 border-b">
             <h2 className="text-xl font-semibold text-gray-900">My Connections</h2>
@@ -240,13 +256,23 @@ const Profile: React.FC = () => {
         </div>
       )}
 
-      {/* Properties Section - Only show when clicked for owners/business */}
-      {(isOwner || isBusiness) && showProperties && (
+      {/* Properties Section - Only show for owners/business */}
+      {(isOwner || isBusiness) && activeSection === 'properties' && (
         <div className="bg-white rounded-xl shadow-sm border">
           <div className="p-6 border-b">
             <h2 className="text-xl font-semibold text-gray-900">My Properties</h2>
           </div>
           <UserProperties ownerId={profile.id} />
+        </div>
+      )}
+
+      {/* Shortlisted Properties Section - Only show for seekers */}
+      {isSeeker && activeSection === 'shortlisted' && (
+        <div className="bg-white rounded-xl shadow-sm border">
+          <div className="p-6 border-b">
+            <h2 className="text-xl font-semibold text-gray-900">Shortlisted Properties</h2>
+          </div>
+          <ShortlistedProperties />
         </div>
       )}
 
