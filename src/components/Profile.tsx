@@ -1,12 +1,14 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Edit, MapPin, Heart, Star, Building, Camera } from 'lucide-react';
 import { useProfile } from '@/hooks/useProfile';
 import { useAuth } from '@/hooks/useAuth';
 import { useConnections } from '@/hooks/useConnections';
 import { useProperties } from '@/hooks/useProperties';
+import { useBusinessRatings } from '@/hooks/useBusinessRatings';
 import AvatarWithBadge from './AvatarWithBadge';
 import UserBadge from './UserBadge';
+import StarRating from './StarRating';
 import ImageUpload from './ImageUpload';
 import EditProfileModal from './EditProfileModal';
 import { useToast } from '@/hooks/use-toast';
@@ -16,9 +18,17 @@ const Profile: React.FC = () => {
   const { profile, updateProfile } = useProfile();
   const { connections } = useConnections();
   const { shortlistedProperties } = useProperties();
+  const { fetchBusinessRatings, getRatingStats } = useBusinessRatings();
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const { toast } = useToast();
+
+  // Fetch ratings if current user is a business
+  useEffect(() => {
+    if (profile && profile.badge === 'business') {
+      fetchBusinessRatings([profile.id]);
+    }
+  }, [profile, fetchBusinessRatings]);
 
   if (!user || !profile) {
     return (
@@ -65,6 +75,8 @@ const Profile: React.FC = () => {
     }
   };
 
+  const ratingStats = profile.badge === 'business' ? getRatingStats(profile.id) : null;
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Profile Header */}
@@ -109,6 +121,14 @@ const Profile: React.FC = () => {
                 <div className="flex items-center gap-3 mb-2">
                   <h1 className="text-3xl font-bold text-gray-900">{profile.name}</h1>
                   <UserBadge badge={profile.badge} size="md" />
+                  {ratingStats && ratingStats.totalRatings > 0 && (
+                    <div className="flex items-center space-x-2">
+                      <StarRating rating={ratingStats.averageRating} readonly size="md" />
+                      <span className="text-sm text-gray-600">
+                        ({ratingStats.averageRating.toFixed(1)}) • {ratingStats.totalRatings} review{ratingStats.totalRatings !== 1 ? 's' : ''}
+                      </span>
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center text-gray-600 mb-4">
                   <MapPin className="h-4 w-4 mr-1" />

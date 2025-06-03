@@ -1,8 +1,11 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { UserPlus, Users, MessageCircle, Star, Check, Clock } from 'lucide-react';
 import UserBadge from './UserBadge';
+import StarRating from './StarRating';
+import RatingModal from './RatingModal';
 import { useConnections } from '@/hooks/useConnections';
+import { useBusinessRatings } from '@/hooks/useBusinessRatings';
 
 const Network: React.FC = () => {
   const { 
@@ -15,7 +18,38 @@ const Network: React.FC = () => {
     getConnectionStatus,
     getPendingConnectionId
   } = useConnections();
+  
+  const { fetchBusinessRatings, getRatingStats, getUserRatingForBusiness, refetchRatings } = useBusinessRatings();
+  
   const [activeTab, setActiveTab] = useState<'discover' | 'connections'>('discover');
+  const [ratingModal, setRatingModal] = useState<{
+    isOpen: boolean;
+    user?: any;
+    currentRating?: number;
+  }>({ isOpen: false });
+
+  // Fetch ratings when connections or suggestions change
+  useEffect(() => {
+    const allUsers = [...connections, ...suggestions];
+    const businessIds = allUsers.filter(user => user.badge === 'business').map(user => user.id);
+    
+    if (businessIds.length > 0) {
+      fetchBusinessRatings(businessIds);
+    }
+  }, [connections, suggestions]);
+
+  const handleRateClick = async (user: any) => {
+    const currentRating = await getUserRatingForBusiness(user.id);
+    setRatingModal({
+      isOpen: true,
+      user,
+      currentRating
+    });
+  };
+
+  const handleRatingSubmitted = () => {
+    refetchRatings();
+  };
 
   if (loading) {
     return (
@@ -79,6 +113,65 @@ const Network: React.FC = () => {
     }
   };
 
+  const renderUserCard = (user: any, showRateButton = false) => {
+    const ratingStats = user.badge === 'business' ? getRatingStats(user.id) : null;
+    
+    return (
+      <div key={user.id} className="bg-white rounded-xl shadow-sm border p-6">
+        <div className="flex items-start space-x-4">
+          <img
+            src={user.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`}
+            alt={user.name}
+            className="w-16 h-16 rounded-full object-cover"
+          />
+          <div className="flex-1">
+            <div className="flex items-center space-x-2 mb-2">
+              <h3 className="text-lg font-semibold text-gray-900">{user.name}</h3>
+              <UserBadge badge={user.badge} />
+              {ratingStats && ratingStats.totalRatings > 0 && (
+                <div className="flex items-center space-x-1">
+                  <StarRating rating={ratingStats.averageRating} readonly size="sm" />
+                  <span className="text-xs text-gray-500">({ratingStats.totalRatings})</span>
+                </div>
+              )}
+            </div>
+            <p className="text-gray-600 mb-2">{user.location}</p>
+            <p className="text-gray-700 text-sm leading-relaxed">{user.description}</p>
+            {user.listing_preference && (
+              <p className="text-blue-600 text-sm mt-2 font-medium">
+                Preference: {user.listing_preference}
+              </p>
+            )}
+          </div>
+          <div className="flex flex-col space-y-2">
+            {activeTab === 'discover' && renderConnectionButton(user)}
+            <button className="flex items-center space-x-2 border border-gray-300 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors">
+              <MessageCircle className="h-4 w-4" />
+              <span>Message</span>
+            </button>
+            {(user.badge === 'business' && (activeTab === 'connections' || showRateButton)) && (
+              <button 
+                onClick={() => handleRateClick(user)}
+                className="flex items-center space-x-2 bg-yellow-100 text-yellow-800 px-4 py-2 rounded-lg font-medium hover:bg-yellow-200 transition-colors"
+              >
+                <Star className="h-4 w-4" />
+                <span>Rate</span>
+              </button>
+            )}
+            {activeTab === 'connections' && (
+              <button
+                onClick={() => disconnect(user.id)}
+                className="text-sm text-red-600 hover:text-red-800 transition-colors"
+              >
+                Disconnect
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="max-w-4xl mx-auto">
       <div className="bg-white rounded-xl shadow-sm border p-6 mb-6">
@@ -112,37 +205,7 @@ const Network: React.FC = () => {
         <div className="space-y-4">
           <h3 className="text-lg font-semibold text-gray-900">People you may know</h3>
           {suggestions.length > 0 ? (
-            suggestions.map((user) => (
-              <div key={user.id} className="bg-white rounded-xl shadow-sm border p-6">
-                <div className="flex items-start space-x-4">
-                  <img
-                    src={user.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`}
-                    alt={user.name}
-                    className="w-16 h-16 rounded-full object-cover"
-                  />
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-2 mb-2">
-                      <h3 className="text-lg font-semibold text-gray-900">{user.name}</h3>
-                      <UserBadge badge={user.badge} />
-                    </div>
-                    <p className="text-gray-600 mb-2">{user.location}</p>
-                    <p className="text-gray-700 text-sm leading-relaxed">{user.description}</p>
-                    {user.listing_preference && (
-                      <p className="text-blue-600 text-sm mt-2 font-medium">
-                        Preference: {user.listing_preference}
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex flex-col space-y-2">
-                    {renderConnectionButton(user)}
-                    <button className="flex items-center space-x-2 border border-gray-300 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors">
-                      <MessageCircle className="h-4 w-4" />
-                      <span>Message</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))
+            suggestions.map((user) => renderUserCard(user, true))
           ) : (
             <div className="bg-white rounded-xl shadow-sm border p-12 text-center">
               <p className="text-gray-500 text-lg">No suggestions available</p>
@@ -156,43 +219,7 @@ const Network: React.FC = () => {
         <div className="space-y-4">
           <h3 className="text-lg font-semibold text-gray-900">Your connections</h3>
           {connections.length > 0 ? (
-            connections.map((user) => (
-              <div key={user.id} className="bg-white rounded-xl shadow-sm border p-6">
-                <div className="flex items-start space-x-4">
-                  <img
-                    src={user.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`}
-                    alt={user.name}
-                    className="w-16 h-16 rounded-full object-cover"
-                  />
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-2 mb-2">
-                      <h3 className="text-lg font-semibold text-gray-900">{user.name}</h3>
-                      <UserBadge badge={user.badge} />
-                    </div>
-                    <p className="text-gray-600 mb-2">{user.location}</p>
-                    <p className="text-gray-700 text-sm leading-relaxed">{user.description}</p>
-                  </div>
-                  <div className="flex flex-col space-y-2">
-                    <button className="flex items-center space-x-2 border border-gray-300 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors">
-                      <MessageCircle className="h-4 w-4" />
-                      <span>Message</span>
-                    </button>
-                    {user.badge === 'business' && (
-                      <button className="flex items-center space-x-2 bg-yellow-100 text-yellow-800 px-4 py-2 rounded-lg font-medium hover:bg-yellow-200 transition-colors">
-                        <Star className="h-4 w-4" />
-                        <span>Rate</span>
-                      </button>
-                    )}
-                    <button
-                      onClick={() => disconnect(user.id)}
-                      className="text-sm text-red-600 hover:text-red-800 transition-colors"
-                    >
-                      Disconnect
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))
+            connections.map((user) => renderUserCard(user))
           ) : (
             <div className="text-center py-12">
               <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
@@ -202,6 +229,14 @@ const Network: React.FC = () => {
           )}
         </div>
       )}
+
+      <RatingModal
+        isOpen={ratingModal.isOpen}
+        onClose={() => setRatingModal({ isOpen: false })}
+        businessUser={ratingModal.user}
+        currentRating={ratingModal.currentRating}
+        onRatingSubmitted={handleRatingSubmitted}
+      />
     </div>
   );
 };

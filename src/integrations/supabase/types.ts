@@ -9,6 +9,51 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      business_ratings: {
+        Row: {
+          business_id: string
+          comment: string | null
+          created_at: string
+          id: string
+          rater_id: string
+          rating: number
+          updated_at: string
+        }
+        Insert: {
+          business_id: string
+          comment?: string | null
+          created_at?: string
+          id?: string
+          rater_id: string
+          rating: number
+          updated_at?: string
+        }
+        Update: {
+          business_id?: string
+          comment?: string | null
+          created_at?: string
+          id?: string
+          rater_id?: string
+          rating?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_ratings_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "business_ratings_rater_id_fkey"
+            columns: ["rater_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chat_messages: {
         Row: {
           attachments: Json | null
