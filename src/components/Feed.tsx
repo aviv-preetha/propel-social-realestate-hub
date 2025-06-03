@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Heart, MessageCircle, Share, Send, MoreHorizontal } from 'lucide-react';
 import UserBadge from './UserBadge';
 import UserMention from './UserMention';
@@ -22,10 +22,10 @@ const Feed: React.FC = () => {
   const [newComments, setNewComments] = useState<Record<string, string>>({});
   const [newPostContent, setNewPostContent] = useState('');
   const [newPostImages, setNewPostImages] = useState<string[]>([]);
-  const [showImageUpload, setShowImageUpload] = useState(false);
   const [profileCache, setProfileCache] = useState<Record<string, ProfileData>>({});
   const [taggedUsers, setTaggedUsers] = useState<Record<string, string[]>>({});
   const [postTaggedUsers, setPostTaggedUsers] = useState<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const getUserById = async (userId: string): Promise<ProfileData> => {
     // Check cache first
@@ -107,12 +107,43 @@ const Feed: React.FC = () => {
     await createPost(content, newPostImages.length > 0 ? newPostImages : undefined);
     setNewPostContent('');
     setNewPostImages([]);
-    setShowImageUpload(false);
     setPostTaggedUsers([]);
   };
 
-  const handleImageUpload = (url: string) => {
-    setNewPostImages(prev => [...prev, url]);
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const uploadFile = async () => {
+      try {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Math.random()}.${fileExt}`;
+        const filePath = `${fileName}`;
+
+        const { data, error } = await supabase.storage
+          .from('post-images')
+          .upload(filePath, file);
+
+        if (error) {
+          console.error('Error uploading file:', error);
+          return;
+        }
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('post-images')
+          .getPublicUrl(filePath);
+
+        setNewPostImages(prev => [...prev, publicUrl]);
+      } catch (error) {
+        console.error('Error uploading file:', error);
+      }
+    };
+
+    uploadFile();
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   const handleRemoveImage = (index: number) => {
@@ -204,41 +235,41 @@ const Feed: React.FC = () => {
                 className="w-full p-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-left"
               />
               
-              {/* Image Upload Section */}
-              {showImageUpload && (
-                <div className="mt-3 p-3 border border-gray-200 rounded-lg bg-gray-50">
-                  <ImageUpload
-                    bucket="post-images"
-                    onUpload={handleImageUpload}
-                    className="mb-3"
-                  />
-                  {newPostImages.length > 0 && (
-                    <div className="grid grid-cols-2 gap-2 mt-3">
-                      {newPostImages.map((image, index) => (
-                        <div key={index} className="relative">
-                          <img
-                            src={image}
-                            alt={`Upload ${index + 1}`}
-                            className="w-full h-32 object-cover rounded-lg"
-                          />
-                          <button
-                            onClick={() => handleRemoveImage(index)}
-                            className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600"
-                          >
-                            ×
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+              {/* Image Preview Section */}
+              {newPostImages.length > 0 && (
+                <div className="mt-3">
+                  <div className="grid grid-cols-2 gap-2">
+                    {newPostImages.map((image, index) => (
+                      <div key={index} className="relative">
+                        <img
+                          src={image}
+                          alt={`Upload ${index + 1}`}
+                          className="w-full h-32 object-cover rounded-lg"
+                        />
+                        <button
+                          onClick={() => handleRemoveImage(index)}
+                          className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
               <div className="flex justify-between items-center mt-3">
                 <div className="flex space-x-2">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileSelect}
+                    className="hidden"
+                  />
                   <button 
-                    onClick={() => setShowImageUpload(!showImageUpload)}
-                    className={`text-gray-400 hover:text-gray-600 transition-colors ${showImageUpload ? 'text-blue-600' : ''}`}
+                    onClick={() => fileInputRef.current?.click()}
+                    className="text-gray-400 hover:text-gray-600 transition-colors"
                   >
                     📷 Photo
                   </button>

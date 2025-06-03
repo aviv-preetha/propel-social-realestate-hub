@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Heart, MapPin, Bed, Bath, Square } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -6,7 +5,11 @@ import { useProperties, Property } from '@/hooks/useProperties';
 import { useProfile } from '@/hooks/useProfile';
 import PropertyModal from './PropertyModal';
 
-const ShortlistedProperties: React.FC = () => {
+interface ShortlistedPropertiesProps {
+  onCountUpdate?: () => void;
+}
+
+const ShortlistedProperties: React.FC<ShortlistedPropertiesProps> = ({ onCountUpdate }) => {
   const { properties, shortlistedProperties, toggleShortlist } = useProperties();
   const { profile } = useProfile();
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
@@ -31,6 +34,10 @@ const ShortlistedProperties: React.FC = () => {
   const handleRemoveFromShortlist = async (propertyId: string, event: React.MouseEvent) => {
     event.stopPropagation();
     await toggleShortlist(propertyId);
+    // Trigger callback to update parent component
+    if (onCountUpdate) {
+      onCountUpdate();
+    }
   };
 
   if (loading) {
