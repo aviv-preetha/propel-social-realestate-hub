@@ -30,6 +30,7 @@ const ShortlistInviteModal: React.FC<ShortlistInviteModalProps> = ({
 
   useEffect(() => {
     const fetchInvitationStatuses = async () => {
+      console.log("fetchInvitationStatuses");
       if (!isOpen || !connections.length) return;
       
       const statuses: {[key: string]: string} = {};

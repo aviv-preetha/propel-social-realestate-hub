@@ -307,6 +307,7 @@ export function useShortlists() {
       });
 
       if (error) throw error;
+      console.log("checkInvitationStatus data", data);
       return data;
     } catch (error) {
       console.error('Error checking invitation status:', error);
