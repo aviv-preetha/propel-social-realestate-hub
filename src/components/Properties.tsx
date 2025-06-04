@@ -1,10 +1,12 @@
+
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, MapPin, Heart, Building, Bed, Bath, Square, Settings } from 'lucide-react';
+import { Search, Filter, MapPin, Heart, Building, Bed, Bath, Square, Settings, ChevronDown } from 'lucide-react';
 import { useProperties } from '@/hooks/useProperties';
 import { useProfile } from '@/hooks/useProfile';
 import { useToast } from '@/hooks/use-toast';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Input } from '@/components/ui/input';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import PropertyModal from './PropertyModal';
 
 interface PropertyFilters {
@@ -23,7 +25,8 @@ const Properties: React.FC = () => {
   const { toast } = useToast();
   const [selectedProperty, setSelectedProperty] = useState<any>(null);
   const [filteredProperties, setFilteredProperties] = useState(properties);
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [showRecommendations, setShowRecommendations] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   // Initialize filters with user preferences
   const initializeFilters = (): PropertyFilters => {
@@ -99,19 +102,11 @@ const Properties: React.FC = () => {
     }
 
     setFilteredProperties(filtered);
+    setShowRecommendations(filtered.length === 0 && properties.length > 0);
   }, [properties, filters]);
 
   const handleFilterChange = (key: keyof PropertyFilters, value: any) => {
     setFilters(prev => ({ ...prev, [key]: value }));
-  };
-
-  const handleTypeToggle = (type: string) => {
-    setFilters(prev => ({
-      ...prev,
-      types: prev.types.includes(type)
-        ? prev.types.filter(t => t !== type)
-        : [...prev.types, type]
-    }));
   };
 
   const saveFiltersAsPreferences = async () => {
@@ -151,6 +146,8 @@ const Properties: React.FC = () => {
   const isBusiness = profile?.badge === 'business';
   const isSeeker = profile?.badge === 'seeker';
 
+  const displayProperties = showRecommendations ? properties : filteredProperties;
+
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto space-y-6">
@@ -173,136 +170,150 @@ const Properties: React.FC = () => {
             </div>
           </div>
 
-          {/* Filters Section */}
-          <div className="space-y-6">
-            <div className="flex items-center gap-2 mb-4">
+          {/* Collapsible Filters Section */}
+          <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen}>
+            <CollapsibleTrigger className="flex items-center gap-2 p-3 hover:bg-gray-50 rounded-lg transition-colors w-full">
               <Filter className="h-5 w-5 text-gray-600" />
               <h3 className="text-lg font-medium text-gray-900">Filters</h3>
-            </div>
-
-            {/* Search and Location Row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Search Properties</label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <ChevronDown className={`h-4 w-4 text-gray-600 transition-transform ${filtersOpen ? 'rotate-180' : ''}`} />
+            </CollapsibleTrigger>
+            
+            <CollapsibleContent className="space-y-6 pt-4">
+              {/* Search and Location Row */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Search Properties</label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input
+                      type="text"
+                      placeholder="Search properties..."
+                      value={filters.searchTerm}
+                      onChange={(e) => handleFilterChange('searchTerm', e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Location</label>
                   <Input
                     type="text"
-                    placeholder="Search properties..."
-                    value={filters.searchTerm}
-                    onChange={(e) => handleFilterChange('searchTerm', e.target.value)}
-                    className="pl-10"
+                    value={filters.location}
+                    onChange={(e) => handleFilterChange('location', e.target.value)}
+                    placeholder="Enter location..."
                   />
                 </div>
               </div>
+
+              {/* Property Types */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Location</label>
-                <Input
-                  type="text"
-                  value={filters.location}
-                  onChange={(e) => handleFilterChange('location', e.target.value)}
-                  placeholder="Enter location..."
-                />
-              </div>
-            </div>
-
-            {/* Property Types */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Property Type</label>
-              <ToggleGroup 
-                type="multiple" 
-                value={filters.types}
-                onValueChange={(types) => setFilters(prev => ({ ...prev, types }))}
-                className="justify-start"
-              >
-                <ToggleGroupItem 
-                  value="rent" 
-                  aria-label="Rent" 
-                  className="px-4 py-2 border border-gray-400 bg-white text-gray-800 hover:bg-gray-100 data-[state=on]:bg-blue-600 data-[state=on]:text-white data-[state=on]:border-blue-600 font-medium"
+                <label className="block text-sm font-medium text-gray-700 mb-2">Property Type</label>
+                <ToggleGroup 
+                  type="multiple" 
+                  value={filters.types}
+                  onValueChange={(types) => setFilters(prev => ({ ...prev, types }))}
+                  className="justify-start"
                 >
-                  Rent
-                </ToggleGroupItem>
-                <ToggleGroupItem 
-                  value="sale" 
-                  aria-label="Buy" 
-                  className="px-4 py-2 border border-gray-400 bg-white text-gray-800 hover:bg-gray-100 data-[state=on]:bg-blue-600 data-[state=on]:text-white data-[state=on]:border-blue-600 font-medium"
-                >
-                  Buy
-                </ToggleGroupItem>
-              </ToggleGroup>
-            </div>
+                  <ToggleGroupItem 
+                    value="rent" 
+                    aria-label="Rent" 
+                    className="px-4 py-2 border border-gray-400 bg-white text-gray-800 hover:bg-gray-100 data-[state=on]:bg-blue-600 data-[state=on]:text-white data-[state=on]:border-blue-600 font-medium"
+                  >
+                    Rent
+                  </ToggleGroupItem>
+                  <ToggleGroupItem 
+                    value="sale" 
+                    aria-label="Buy" 
+                    className="px-4 py-2 border border-gray-400 bg-white text-gray-800 hover:bg-gray-100 data-[state=on]:bg-blue-600 data-[state=on]:text-white data-[state=on]:border-blue-600 font-medium"
+                  >
+                    Buy
+                  </ToggleGroupItem>
+                </ToggleGroup>
+              </div>
 
-            {/* Price Range */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Price Range ($)</label>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs text-gray-500 mb-1">Min Price</label>
-                  <Input
-                    type="number"
-                    value={filters.minPrice === 0 ? '' : filters.minPrice}
-                    onChange={(e) => handleFilterChange('minPrice', e.target.value === '' ? 0 : parseInt(e.target.value) || 0)}
-                    placeholder="Min $"
-                    min="0"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-500 mb-1">Max Price</label>
-                  <Input
-                    type="number"
-                    value={filters.maxPrice === 0 ? '' : filters.maxPrice}
-                    onChange={(e) => handleFilterChange('maxPrice', e.target.value === '' ? 0 : parseInt(e.target.value) || 0)}
-                    placeholder="Max $"
-                    min="0"
-                  />
+              {/* Price Range */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Price Range ($)</label>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Min Price</label>
+                    <Input
+                      type="number"
+                      value={filters.minPrice === 0 ? '' : filters.minPrice}
+                      onChange={(e) => handleFilterChange('minPrice', e.target.value === '' ? 0 : parseInt(e.target.value) || 0)}
+                      placeholder="Min $"
+                      min="0"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Max Price</label>
+                    <Input
+                      type="number"
+                      value={filters.maxPrice === 0 ? '' : filters.maxPrice}
+                      onChange={(e) => handleFilterChange('maxPrice', e.target.value === '' ? 0 : parseInt(e.target.value) || 0)}
+                      placeholder="Max $"
+                      min="0"
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Size Range */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Property Size (m²)</label>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs text-gray-500 mb-1">Min Size</label>
-                  <Input
-                    type="number"
-                    value={filters.minSize === 0 ? '' : filters.minSize}
-                    onChange={(e) => handleFilterChange('minSize', e.target.value === '' ? 0 : parseInt(e.target.value) || 0)}
-                    placeholder="Min m²"
-                    min="0"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-500 mb-1">Max Size</label>
-                  <Input
-                    type="number"
-                    value={filters.maxSize === 0 ? '' : filters.maxSize}
-                    onChange={(e) => handleFilterChange('maxSize', e.target.value === '' ? 0 : parseInt(e.target.value) || 0)}
-                    placeholder="Max m²"
-                    min="0"
-                  />
+              {/* Size Range */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Property Size (m²)</label>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Min Size</label>
+                    <Input
+                      type="number"
+                      value={filters.minSize === 0 ? '' : filters.minSize}
+                      onChange={(e) => handleFilterChange('minSize', e.target.value === '' ? 0 : parseInt(e.target.value) || 0)}
+                      placeholder="Min m²"
+                      min="0"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Max Size</label>
+                    <Input
+                      type="number"
+                      value={filters.maxSize === 0 ? '' : filters.maxSize}
+                      onChange={(e) => handleFilterChange('maxSize', e.target.value === '' ? 0 : parseInt(e.target.value) || 0)}
+                      placeholder="Max m²"
+                      min="0"
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Save Preferences Button for Seekers */}
-            {isSeeker && (
-              <div className="flex justify-end pt-4 border-t">
-                <button
-                  onClick={saveFiltersAsPreferences}
-                  className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  <Settings className="h-4 w-4" />
-                  Save as My Preferences
-                </button>
-              </div>
-            )}
-          </div>
+              {/* Save Preferences Button for Seekers */}
+              {isSeeker && (
+                <div className="flex justify-end pt-4 border-t">
+                  <button
+                    onClick={saveFiltersAsPreferences}
+                    className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    <Settings className="h-4 w-4" />
+                    Save as My Preferences
+                  </button>
+                </div>
+              )}
+            </CollapsibleContent>
+          </Collapsible>
         </div>
       </div>
 
-      {filteredProperties.length === 0 ? (
+      {/* Results Section */}
+      {showRecommendations && (
+        <div className="bg-blue-50 rounded-xl border border-blue-200 p-6">
+          <div className="text-center">
+            <Building className="h-8 w-8 text-blue-600 mx-auto mb-2" />
+            <h3 className="text-lg font-medium text-blue-900 mb-1">Nothing specific found for user preferences.</h3>
+            <p className="text-blue-700">Here are some recommendations:</p>
+          </div>
+        </div>
+      )}
+
+      {displayProperties.length === 0 ? (
         <div className="bg-white rounded-xl shadow-sm border p-8 text-center">
           <Building className="h-12 w-12 text-gray-300 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-600 mb-2">No properties found</h3>
@@ -310,7 +321,7 @@ const Properties: React.FC = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredProperties.map((property) => (
+          {displayProperties.map((property) => (
             <div key={property.id} className="bg-white rounded-xl shadow-sm border overflow-hidden hover:shadow-md transition-shadow">
               <div className="relative">
                 <img
