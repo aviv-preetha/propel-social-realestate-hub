@@ -74,6 +74,7 @@ export function useNotifications() {
           filter: `user_id=eq.${user.id}`
         },
         (payload) => {
+          console.log('New notification received:', payload);
           const newNotification = {
             ...payload.new,
             type: payload.new.type as 'like' | 'comment' | 'mention'
