@@ -193,10 +193,28 @@ const Network: React.FC = () => {
   const getPendingRequests = () => {
     if (!profile?.id) return [];
     
-    return pendingConnections
-      .filter(conn => conn.connected_user_id === profile.id) // requests received by current user
-      .map(conn => suggestions.find(user => user.id === conn.user_id))
-      .filter(Boolean);
+    console.log('Current profile ID:', profile.id);
+    console.log('All pending connections:', pendingConnections);
+    console.log('All suggestions:', suggestions);
+    
+    // Find pending connections where current user is the recipient (connected_user_id)
+    const receivedRequests = pendingConnections.filter(conn => {
+      console.log(`Checking connection: user_id=${conn.user_id}, connected_user_id=${conn.connected_user_id}`);
+      return conn.connected_user_id === profile.id;
+    });
+    
+    console.log('Received requests:', receivedRequests);
+    
+    // Map to user profiles from suggestions
+    const requestUsers = receivedRequests.map(conn => {
+      const user = suggestions.find(user => user.id === conn.user_id);
+      console.log(`Looking for user ${conn.user_id} in suggestions:`, user);
+      return user;
+    }).filter(Boolean);
+    
+    console.log('Final pending request users:', requestUsers);
+    
+    return requestUsers;
   };
 
   const pendingRequests = getPendingRequests();
