@@ -12,6 +12,7 @@ const Network: React.FC = () => {
   const { 
     connections, 
     suggestions, 
+    pendingConnections,
     loading, 
     connect, 
     acceptConnection,
@@ -186,6 +187,16 @@ const Network: React.FC = () => {
     );
   };
 
+  // Get pending connection requests (received requests) with profile data
+  const getPendingRequests = () => {
+    return pendingConnections
+      .filter(conn => conn.connected_user_id === connections[0]?.id) // requests received by current user
+      .map(conn => suggestions.find(user => user.id === conn.user_id))
+      .filter(Boolean);
+  };
+
+  const pendingRequests = getPendingRequests();
+
   return (
     <div className="max-w-4xl mx-auto">
       <div className="bg-white rounded-xl shadow-sm border p-6 mb-6">
@@ -216,16 +227,31 @@ const Network: React.FC = () => {
       </div>
 
       {activeTab === 'discover' && (
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-gray-900">People you may know</h3>
-          {suggestions.length > 0 ? (
-            suggestions.map((user) => renderUserCard(user, true))
-          ) : (
-            <div className="bg-white rounded-xl shadow-sm border p-12 text-center">
-              <p className="text-gray-500 text-lg">No suggestions available</p>
-              <p className="text-gray-400">Check back later for new connection opportunities</p>
+        <div className="space-y-6">
+          {/* Pending Connection Requests Section */}
+          {pendingRequests.length > 0 && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-gray-900">Pending Connection Requests</h3>
+              <div className="space-y-4">
+                {pendingRequests.map((user) => renderUserCard(user, true))}
+              </div>
             </div>
           )}
+          
+          {/* Suggestions Section */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-gray-900">People you may know</h3>
+            {suggestions.length > 0 ? (
+              suggestions
+                .filter(user => !pendingRequests.some(req => req?.id === user.id)) // Exclude pending requests
+                .map((user) => renderUserCard(user, true))
+            ) : (
+              <div className="bg-white rounded-xl shadow-sm border p-12 text-center">
+                <p className="text-gray-500 text-lg">No suggestions available</p>
+                <p className="text-gray-400">Check back later for new connection opportunities</p>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
