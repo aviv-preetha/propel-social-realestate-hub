@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Edit, MapPin, Heart, Star, Building, Camera, MessageSquare, FileText, List, X, Bed, Bath, Square, Share2, Plus } from 'lucide-react';
+import { Edit, MapPin, Heart, Star, Building, Camera, MessageSquare, FileText, List, X, Bed, Bath, Square, Share2, Plus, Copy, UserPlus } from 'lucide-react';
 import { useProfile } from '@/hooks/useProfile';
 import { useAuth } from '@/hooks/useAuth';
 import { useConnections } from '@/hooks/useConnections';
@@ -55,7 +55,7 @@ const Profile: React.FC = () => {
   const { properties } = useProperties();
   const { fetchBusinessRatings, getRatingStats } = useBusinessRatings();
   const { posts } = usePosts();
-  const { shortlists, createShortlist, updateShortlistSharing } = useShortlists();
+  const { shortlists, createShortlist, updateShortlistSharing, inviteToShortlist } = useShortlists();
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [activeSection, setActiveSection] = useState<'reviews' | 'connections' | 'properties' | 'shortlists' | 'posts' | null>(null);
@@ -63,6 +63,8 @@ const Profile: React.FC = () => {
   const [shortlistProperties, setShortlistProperties] = useState<any[]>([]);
   const [selectedProperty, setSelectedProperty] = useState<any>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [selectedShortlistForShare, setSelectedShortlistForShare] = useState<any>(null);
   const [newShortlistName, setNewShortlistName] = useState('');
   const [newShortlistDescription, setNewShortlistDescription] = useState('');
   const { toast } = useToast();
@@ -253,6 +255,30 @@ const Profile: React.FC = () => {
 
   // Count shortlists correctly
   const shortlistsCount = shortlists.length;
+
+  const handleShareShortlist = (shortlist: any) => {
+    setSelectedShortlistForShare(shortlist);
+    setShowShareModal(true);
+  };
+
+  const copyShareLink = (shareToken: string) => {
+    const shareUrl = `${window.location.origin}/shortlist/shared/${shareToken}`;
+    navigator.clipboard.writeText(shareUrl);
+    toast({
+      title: "Link copied!",
+      description: "Share link has been copied to clipboard",
+    });
+  };
+
+  const handleInviteUser = async (connectionId: string) => {
+    if (!selectedShortlistForShare) return;
+    
+    await inviteToShortlist(selectedShortlistForShare.id, connectionId);
+    toast({
+      title: "Invitation sent!",
+      description: "Your connection has been invited to the shortlist",
+    });
+  };
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -519,11 +545,11 @@ const Profile: React.FC = () => {
                     </button>
                     
                     <button
-                      onClick={() => toggleSharing(shortlist.id, shortlist.is_shared)}
+                      onClick={() => handleShareShortlist(shortlist)}
                       className="w-full bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-200 transition-colors flex items-center justify-center space-x-2"
                     >
                       <Share2 className="h-4 w-4" />
-                      <span>{shortlist.is_shared ? 'Disable Sharing' : 'Enable Sharing'}</span>
+                      <span>Share</span>
                     </button>
                   </div>
                 </div>
@@ -621,6 +647,78 @@ const Profile: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Share Shortlist Modal */}
+      <Dialog open={showShareModal} onOpenChange={setShowShareModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Share "{selectedShortlistForShare?.name}"</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {/* Share Link */}
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-2 block">Share Link</label>
+              <div className="flex items-center space-x-2">
+                <Input
+                  value={`${window.location.origin}/shortlist/shared/${selectedShortlistForShare?.share_token}`}
+                  readOnly
+                  className="flex-1 text-sm"
+                />
+                <Button
+                  size="sm"
+                  onClick={() => copyShareLink(selectedShortlistForShare?.share_token)}
+                  className="flex items-center space-x-1"
+                >
+                  <Copy className="h-4 w-4" />
+                  <span>Copy</span>
+                </Button>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Anyone with this link can view the shortlist
+              </p>
+            </div>
+
+            {/* Share with Connections */}
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-2 block">Share with Connections</label>
+              {connections.length > 0 ? (
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {connections.map((connection) => (
+                    <div
+                      key={connection.id}
+                      className="flex items-center justify-between p-3 border rounded-lg bg-gray-50"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <img
+                          src={connection.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${connection.name}`}
+                          alt={connection.name}
+                          className="w-8 h-8 rounded-full"
+                        />
+                        <div>
+                          <p className="font-medium text-sm">{connection.name}</p>
+                          <p className="text-xs text-gray-600">{connection.location}</p>
+                        </div>
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={() => handleInviteUser(connection.id)}
+                        className="flex items-center space-x-1"
+                      >
+                        <UserPlus className="h-4 w-4" />
+                        <span>Invite</span>
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-500 text-sm text-center py-4">
+                  No connections available to share with
+                </p>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Create Shortlist Modal */}
       <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
