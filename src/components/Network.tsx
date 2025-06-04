@@ -1,8 +1,10 @@
+
 import React, { useState, useEffect } from 'react';
 import { UserPlus, Users, MessageCircle, Star, Check, Clock } from 'lucide-react';
 import UserBadge from './UserBadge';
 import StarRating from './StarRating';
 import RatingModal from './RatingModal';
+import UserProfileModal from './UserProfileModal';
 import { useConnections } from '@/hooks/useConnections';
 import { useBusinessRatings } from '@/hooks/useBusinessRatings';
 
@@ -27,6 +29,11 @@ const Network: React.FC = () => {
     currentRating?: number;
   }>({ isOpen: false });
 
+  const [profileModal, setProfileModal] = useState<{
+    isOpen: boolean;
+    user?: any;
+  }>({ isOpen: false });
+
   // Fetch ratings when connections or suggestions change
   useEffect(() => {
     const allUsers = [...connections, ...suggestions];
@@ -48,6 +55,13 @@ const Network: React.FC = () => {
 
   const handleRatingSubmitted = () => {
     refetchRatings();
+  };
+
+  const handleUserNameClick = (user: any) => {
+    setProfileModal({
+      isOpen: true,
+      user
+    });
   };
 
   if (loading) {
@@ -125,7 +139,12 @@ const Network: React.FC = () => {
           />
           <div className="flex-1">
             <div className="flex items-center space-x-2 mb-2">
-              <h3 className="text-lg font-semibold text-gray-900 text-left">{user.name}</h3>
+              <button
+                onClick={() => handleUserNameClick(user)}
+                className="text-lg font-semibold text-gray-900 text-left hover:text-blue-600 transition-colors"
+              >
+                {user.name}
+              </button>
               <UserBadge badge={user.badge} />
             </div>
             {ratingStats && ratingStats.totalRatings > 0 && (
@@ -235,6 +254,12 @@ const Network: React.FC = () => {
         businessUser={ratingModal.user}
         currentRating={ratingModal.currentRating}
         onRatingSubmitted={handleRatingSubmitted}
+      />
+
+      <UserProfileModal
+        isOpen={profileModal.isOpen}
+        onClose={() => setProfileModal({ isOpen: false })}
+        user={profileModal.user}
       />
     </div>
   );

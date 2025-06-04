@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { useAuth } from './useAuth';
 import { useProfile } from './useProfile';
@@ -15,6 +14,53 @@ export function useConnections() {
   const [pendingConnections, setPendingConnections] = useState<Connection[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+
+  const sortSuggestionsByRelevance = (profiles: Profile[], currentProfile: Profile) => {
+    return profiles.sort((a, b) => {
+      let scoreA = 0;
+      let scoreB = 0;
+
+      // Same location gets high priority
+      if (a.location === currentProfile.location) scoreA += 50;
+      if (b.location === currentProfile.location) scoreB += 50;
+
+      // Business badge relevance for seekers
+      if (currentProfile.badge === 'seeker') {
+        if (a.badge === 'business') scoreA += 40;
+        if (a.badge === 'owner') scoreA += 30;
+        if (b.badge === 'business') scoreB += 40;
+        if (b.badge === 'owner') scoreB += 30;
+      }
+
+      // Owner badge relevance for seekers
+      if (currentProfile.badge === 'owner') {
+        if (a.badge === 'seeker') scoreA += 30;
+        if (a.badge === 'business') scoreA += 20;
+        if (b.badge === 'seeker') scoreB += 30;
+        if (b.badge === 'business') scoreB += 20;
+      }
+
+      // Business connecting with other businesses
+      if (currentProfile.badge === 'business') {
+        if (a.badge === 'owner') scoreA += 35;
+        if (a.badge === 'seeker') scoreA += 25;
+        if (a.badge === 'business') scoreA += 15;
+        if (b.badge === 'owner') scoreB += 35;
+        if (b.badge === 'seeker') scoreB += 25;
+        if (b.badge === 'business') scoreB += 15;
+      }
+
+      // Listing preference match
+      if (currentProfile.listing_preference && a.listing_preference) {
+        if (currentProfile.listing_preference === a.listing_preference) scoreA += 20;
+      }
+      if (currentProfile.listing_preference && b.listing_preference) {
+        if (currentProfile.listing_preference === b.listing_preference) scoreB += 20;
+      }
+
+      return scoreB - scoreA;
+    });
+  };
 
   const fetchConnections = async () => {
     if (!profile?.id) return;
@@ -33,9 +79,12 @@ export function useConnections() {
       // Do NOT exclude pending connections from suggestions
       const excludeIds = [profile.id, ...connectedProfileIds];
       const allProfiles = await connectionService.fetchSuggestions(excludeIds);
-      setSuggestions(allProfiles);
       
-      console.log('Suggestions after filtering:', allProfiles?.length);
+      // Sort suggestions by relevance
+      const sortedSuggestions = sortSuggestionsByRelevance(allProfiles, profile);
+      setSuggestions(sortedSuggestions);
+      
+      console.log('Suggestions after filtering and sorting:', sortedSuggestions?.length);
       console.log('Excluded IDs:', excludeIds);
       console.log('Pending connections count:', pendingData.length);
     } catch (error) {
