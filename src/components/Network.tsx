@@ -58,6 +58,7 @@ const Network: React.FC = () => {
   };
 
   const handleUserNameClick = (user: any) => {
+    console.log('User clicked:', user);
     setProfileModal({
       isOpen: true,
       user
@@ -155,11 +156,6 @@ const Network: React.FC = () => {
             )}
             <p className="text-gray-600 mb-2 text-left">{user.location}</p>
             <p className="text-gray-700 text-sm leading-relaxed text-left">{user.description}</p>
-            {user.listing_preference && (
-              <p className="text-blue-600 text-sm mt-2 font-medium text-left">
-                Preference: {user.listing_preference}
-              </p>
-            )}
           </div>
           <div className="flex flex-col space-y-2">
             {activeTab === 'discover' && renderConnectionButton(user)}
