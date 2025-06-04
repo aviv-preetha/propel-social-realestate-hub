@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Edit, MapPin, Heart, Star, Building, Camera, MessageSquare, FileText, List, X, Bed, Bath, Square, Share2, Plus, Copy, UserPlus } from 'lucide-react';
+import { Edit, MapPin, Heart, Star, Building, Camera, MessageSquare, FileText, List, X, Bed, Bath, Square, Share2, Plus, Copy, UserPlus, Check } from 'lucide-react';
 import { useProfile } from '@/hooks/useProfile';
 import { useAuth } from '@/hooks/useAuth';
 import { useConnections } from '@/hooks/useConnections';
@@ -55,7 +55,7 @@ const Profile: React.FC = () => {
   const { properties } = useProperties();
   const { fetchBusinessRatings, getRatingStats } = useBusinessRatings();
   const { posts } = usePosts();
-  const { shortlists, createShortlist, updateShortlistSharing, inviteToShortlist, checkInvitationStatus } = useShortlists();
+  const { shortlists, invitations, createShortlist, respondToInvitation, updateShortlistSharing, inviteToShortlist, checkInvitationStatus } = useShortlists();
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [activeSection, setActiveSection] = useState<'reviews' | 'connections' | 'properties' | 'shortlists' | 'posts' | null>(null);
@@ -610,44 +610,93 @@ const Profile: React.FC = () => {
             </Button>
           </div>
           <div className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {shortlists.map((shortlist) => (
-                <div key={shortlist.id} className="p-4 border rounded-lg bg-gray-50">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-lg mb-2">{shortlist.name}</h3>
-                      {shortlist.description && (
-                        <p className="text-gray-600 text-sm mb-2">{shortlist.description}</p>
-                      )}
-                      <p className="text-sm text-gray-500 mb-3">
-                        {shortlist.property_count || 0} properties
-                      </p>
-                    </div>
-                    {shortlist.is_shared && (
-                      <div className="flex items-center text-blue-600 ml-2">
-                        <Share2 className="h-4 w-4" />
+            {/* Pending Invitations Section */}
+            {invitations.length > 0 && (
+              <div className="mb-8">
+                <h3 className="text-lg font-semibold mb-4 text-gray-900">Pending Invitations</h3>
+                <div className="space-y-3">
+                  {invitations.map((invitation) => (
+                    <div key={invitation.id} className="p-4 border rounded-lg bg-blue-50 border-blue-200">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-lg text-blue-900">{invitation.shortlist?.name}</h4>
+                          <p className="text-sm text-blue-700 mb-1">
+                            Invited by {invitation.inviter_name}
+                          </p>
+                          {invitation.shortlist?.description && (
+                            <p className="text-sm text-blue-600 mb-2">
+                              {invitation.shortlist.description}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex space-x-2">
+                          <Button
+                            size="sm"
+                            onClick={() => respondToInvitation(invitation.id, true)}
+                            className="bg-green-600 hover:bg-green-700 text-white"
+                          >
+                            <Check className="h-4 w-4 mr-1" />
+                            Accept
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => respondToInvitation(invitation.id, false)}
+                            className="border-red-300 text-red-600 hover:bg-red-50"
+                          >
+                            <X className="h-4 w-4 mr-1" />
+                            Reject
+                          </Button>
+                        </div>
                       </div>
-                    )}
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <button
-                      onClick={() => handleViewProperties(shortlist.id)}
-                      className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 transition-colors"
-                    >
-                      View Properties
-                    </button>
-                    
-                    <button
-                      onClick={() => handleShareShortlist(shortlist)}
-                      className="w-full bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-200 transition-colors flex items-center justify-center space-x-2"
-                    >
-                      <Share2 className="h-4 w-4" />
-                      <span>Share</span>
-                    </button>
-                  </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              </div>
+            )}
+
+            {/* User's Own Shortlists */}
+            <div>
+              <h3 className="text-lg font-semibold mb-4 text-gray-900">My Shortlists</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {shortlists.map((shortlist) => (
+                  <div key={shortlist.id} className="p-4 border rounded-lg bg-gray-50">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-lg mb-2">{shortlist.name}</h3>
+                        {shortlist.description && (
+                          <p className="text-gray-600 text-sm mb-2">{shortlist.description}</p>
+                        )}
+                        <p className="text-sm text-gray-500 mb-3">
+                          {shortlist.property_count || 0} properties
+                        </p>
+                      </div>
+                      {shortlist.is_shared && (
+                        <div className="flex items-center text-blue-600 ml-2">
+                          <Share2 className="h-4 w-4" />
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <button
+                        onClick={() => handleViewProperties(shortlist.id)}
+                        className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 transition-colors"
+                      >
+                        View Properties
+                      </button>
+                      
+                      <button
+                        onClick={() => handleShareShortlist(shortlist)}
+                        className="w-full bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-200 transition-colors flex items-center justify-center space-x-2"
+                      >
+                        <Share2 className="h-4 w-4" />
+                        <span>Share</span>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
