@@ -71,10 +71,18 @@ const ListingPreferencesForm: React.FC<ListingPreferencesFormProps> = ({
           onValueChange={handleTypeChange}
           className="justify-start"
         >
-          <ToggleGroupItem value="rent" aria-label="Rent" className="px-4 py-2">
+          <ToggleGroupItem 
+            value="rent" 
+            aria-label="Rent" 
+            className="px-4 py-2 border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 data-[state=on]:bg-blue-600 data-[state=on]:text-white data-[state=on]:border-blue-600"
+          >
             Rent
           </ToggleGroupItem>
-          <ToggleGroupItem value="sale" aria-label="Buy" className="px-4 py-2">
+          <ToggleGroupItem 
+            value="sale" 
+            aria-label="Buy" 
+            className="px-4 py-2 border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 data-[state=on]:bg-blue-600 data-[state=on]:text-white data-[state=on]:border-blue-600"
+          >
             Buy
           </ToggleGroupItem>
         </ToggleGroup>
