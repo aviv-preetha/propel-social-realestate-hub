@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Heart, MapPin, Bed, Bath, Square } from 'lucide-react';
 import ShortlistSelectionModal from './ShortlistSelectionModal';
+import { useShortlists } from '@/hooks/useShortlists';
 
 interface Property {
   id: string;
@@ -28,6 +29,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
   onPropertyClick
 }) => {
   const [showShortlistModal, setShowShortlistModal] = useState(false);
+  const { shortlists } = useShortlists();
 
   const handleCardClick = () => {
     if (onPropertyClick) {
@@ -39,6 +41,11 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
     e.stopPropagation();
     setShowShortlistModal(true);
   };
+
+  // Check if property is in any shortlist
+  const isInAnyShortlist = shortlists.some(shortlist => 
+    shortlist.property_ids?.includes(property.id)
+  );
 
   // Use a placeholder image if no images are available
   const imageUrl = property.images && property.images.length > 0 
@@ -70,7 +77,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
             onClick={handleHeartClick}
             className="absolute top-3 right-3 p-2 bg-white/90 backdrop-blur-sm rounded-full hover:bg-white transition-colors"
           >
-            <Heart className="h-5 w-5 text-gray-600 hover:text-red-500" />
+            <Heart className={`h-5 w-5 ${isInAnyShortlist ? 'text-red-500 fill-red-500' : 'text-gray-600 hover:text-red-500'}`} />
           </button>
         </div>
         

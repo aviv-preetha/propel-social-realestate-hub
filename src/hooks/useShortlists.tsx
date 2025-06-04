@@ -15,6 +15,7 @@ export interface Shortlist {
   updated_at: string;
   properties?: any[];
   property_count?: number;
+  property_ids?: string[];
 }
 
 export interface ShortlistInvitation {
@@ -76,20 +77,30 @@ export function useShortlists() {
         ...memberShortlists
       ];
 
-      // Fetch property counts for each shortlist
+      // Fetch property counts and property IDs for each shortlist
       const shortlistsWithCounts = await Promise.all(
         allShortlists.map(async (shortlist) => {
-          const { count, error } = await supabase
+          const { data: shortlistProperties, error } = await supabase
             .from('shortlist_properties')
-            .select('*', { count: 'exact', head: true })
+            .select('property_id')
             .eq('shortlist_id', shortlist.id);
 
           if (error) {
-            console.error('Error counting properties for shortlist:', error);
-            return { ...shortlist, property_count: 0 };
+            console.error('Error fetching shortlist properties:', error);
+            return { 
+              ...shortlist, 
+              property_count: 0,
+              property_ids: []
+            };
           }
 
-          return { ...shortlist, property_count: count || 0 };
+          const propertyIds = shortlistProperties?.map(sp => sp.property_id) || [];
+          
+          return { 
+            ...shortlist, 
+            property_count: propertyIds.length,
+            property_ids: propertyIds
+          };
         })
       );
 

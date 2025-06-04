@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Edit, MapPin, Heart, Star, Building, Camera, MessageSquare, FileText, List } from 'lucide-react';
+import { Edit, MapPin, Heart, Star, Building, Camera, MessageSquare, FileText, List, X } from 'lucide-react';
 import { useProfile } from '@/hooks/useProfile';
 import { useAuth } from '@/hooks/useAuth';
 import { useConnections } from '@/hooks/useConnections';
@@ -18,6 +18,7 @@ import UserProperties from './UserProperties';
 import ShortlistsManager from './ShortlistsManager';
 import UserPosts from './UserPosts';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/lib/supabase';
 
 interface ListingPreferences {
   types: string[];
@@ -53,6 +54,8 @@ const Profile: React.FC = () => {
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [activeSection, setActiveSection] = useState<'reviews' | 'connections' | 'properties' | 'shortlists' | 'posts' | null>(null);
+  const [viewingShortlistProperties, setViewingShortlistProperties] = useState<string | null>(null);
+  const [shortlistProperties, setShortlistProperties] = useState<any[]>([]);
   const { toast } = useToast();
 
   // Fetch ratings if current user is a business
@@ -160,6 +163,45 @@ const Profile: React.FC = () => {
 
   // Parse listing preferences for seeker users
   const listingPreferences = isSeeker ? parseListingPreference(profile.listing_preference) : null;
+
+  const handleViewProperties = async (shortlistId: string) => {
+    try {
+      // Fetch property IDs from shortlist_properties
+      const { data: propertyIds, error: idsError } = await supabase
+        .from('shortlist_properties')
+        .select('property_id')
+        .eq('shortlist_id', shortlistId);
+
+      if (idsError) throw idsError;
+
+      if (!propertyIds || propertyIds.length === 0) {
+        setShortlistProperties([]);
+        setViewingShortlistProperties(shortlistId);
+        return;
+      }
+
+      // Fetch actual property details
+      const { data: properties, error: propertiesError } = await supabase
+        .from('properties')
+        .select('*')
+        .in('id', propertyIds.map(p => p.property_id));
+
+      if (propertiesError) throw propertiesError;
+
+      setShortlistProperties(properties || []);
+      setViewingShortlistProperties(shortlistId);
+    } catch (error) {
+      console.error('Error fetching shortlist properties:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load properties",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Count shortlists correctly
+  const shortlistsCount = shortlists.length;
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -310,7 +352,7 @@ const Profile: React.FC = () => {
             <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mb-3 mx-auto">
               <List className="h-6 w-6 text-indigo-600" />
             </div>
-            <h3 className="text-2xl font-bold text-gray-900 text-center">{totalShortlistedCount}</h3>
+            <h3 className="text-2xl font-bold text-gray-900 text-center">{shortlistsCount}</h3>
             <p className="text-gray-600 text-center">Shortlists</p>
           </div>
         )}
@@ -392,7 +434,27 @@ const Profile: React.FC = () => {
           <div className="p-6 border-b">
             <h2 className="text-xl font-semibold text-gray-900">My Shortlists</h2>
           </div>
-          <ShortlistsManager />
+          <div className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {shortlists.map((shortlist) => (
+                <div key={shortlist.id} className="p-4 border rounded-lg bg-gray-50">
+                  <h3 className="font-semibold text-lg mb-2">{shortlist.name}</h3>
+                  {shortlist.description && (
+                    <p className="text-gray-600 text-sm mb-2">{shortlist.description}</p>
+                  )}
+                  <p className="text-sm text-gray-500 mb-3">
+                    {shortlist.property_count || 0} properties
+                  </p>
+                  <button
+                    onClick={() => handleViewProperties(shortlist.id)}
+                    className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 transition-colors"
+                  >
+                    View Properties
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 
@@ -402,6 +464,67 @@ const Profile: React.FC = () => {
             <h2 className="text-xl font-semibold text-gray-900">My Posts</h2>
           </div>
           <UserPosts userId={profile.id} />
+        </div>
+      )}
+
+      {/* Properties Popup */}
+      {viewingShortlistProperties && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[80vh] overflow-hidden">
+            <div className="p-6 border-b flex items-center justify-between">
+              <h2 className="text-xl font-semibold">Shortlist Properties</h2>
+              <button
+                onClick={() => setViewingShortlistProperties(null)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto max-h-[60vh]">
+              {shortlistProperties.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {shortlistProperties.map((property) => (
+                    <div key={property.id} className="border rounded-lg p-4 bg-gray-50">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-lg">{property.title}</h3>
+                          <p className="text-gray-600 text-sm">{property.location}</p>
+                          <p className="text-xl font-bold text-blue-600 mt-2">
+                            €{property.price?.toLocaleString()}
+                            {property.type === 'rent' && <span className="text-sm text-gray-500">/month</span>}
+                          </p>
+                        </div>
+                        {property.images && property.images[0] && (
+                          <img
+                            src={property.images[0]}
+                            alt={property.title}
+                            className="w-20 h-20 object-cover rounded-lg ml-4"
+                          />
+                        )}
+                      </div>
+                      <div className="flex items-center space-x-4 text-sm text-gray-600 mb-3">
+                        <div className="flex items-center">
+                          <Bed className="h-4 w-4 mr-1" />
+                          <span>{property.bedrooms} bed{property.bedrooms !== 1 ? 's' : ''}</span>
+                        </div>
+                        <div className="flex items-center">
+                          <Bath className="h-4 w-4 mr-1" />
+                          <span>{property.bathrooms} bath{property.bathrooms !== 1 ? 's' : ''}</span>
+                        </div>
+                        <div className="flex items-center">
+                          <Square className="h-4 w-4 mr-1" />
+                          <span>{property.area}m²</span>
+                        </div>
+                      </div>
+                      <p className="text-gray-600 text-sm line-clamp-2">{property.description}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-500 text-center py-8">No properties in this shortlist</p>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
