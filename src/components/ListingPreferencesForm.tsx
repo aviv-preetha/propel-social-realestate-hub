@@ -1,8 +1,8 @@
 
 import React, { useState } from 'react';
 import { Input } from './ui/input';
-import { Checkbox } from './ui/checkbox';
 import { Slider } from './ui/slider';
+import { ToggleGroup, ToggleGroupItem } from './ui/toggle-group';
 
 interface ListingPreferences {
   types: string[];
@@ -22,22 +22,14 @@ const ListingPreferencesForm: React.FC<ListingPreferencesFormProps> = ({
   preferences,
   onChange
 }) => {
-  const [sizeRange, setSizeRange] = useState([preferences.minSize, preferences.maxSize]);
-  const [priceRange, setPriceRange] = useState([preferences.minPrice, preferences.maxPrice]);
-
-  const handleTypeChange = (type: string, checked: boolean) => {
-    const newTypes = checked 
-      ? [...preferences.types, type]
-      : preferences.types.filter(t => t !== type);
-    
+  const handleTypeChange = (types: string[]) => {
     onChange({
       ...preferences,
-      types: newTypes
+      types
     });
   };
 
   const handleSizeRangeChange = (values: number[]) => {
-    setSizeRange(values);
     onChange({
       ...preferences,
       minSize: values[0],
@@ -46,7 +38,6 @@ const ListingPreferencesForm: React.FC<ListingPreferencesFormProps> = ({
   };
 
   const handlePriceRangeChange = (values: number[]) => {
-    setPriceRange(values);
     onChange({
       ...preferences,
       minPrice: values[0],
@@ -74,31 +65,26 @@ const ListingPreferencesForm: React.FC<ListingPreferencesFormProps> = ({
     <div className="space-y-6">
       <div className="space-y-2">
         <label className="block text-sm font-medium text-gray-700">Property Type</label>
-        <div className="flex flex-col space-y-3">
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="rent"
-              checked={preferences.types.includes('rent')}
-              onCheckedChange={(checked) => handleTypeChange('rent', checked as boolean)}
-            />
-            <label htmlFor="rent" className="text-sm font-medium">For Rent</label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="sale"
-              checked={preferences.types.includes('sale')}
-              onCheckedChange={(checked) => handleTypeChange('sale', checked as boolean)}
-            />
-            <label htmlFor="sale" className="text-sm font-medium">For Sale</label>
-          </div>
-        </div>
+        <ToggleGroup 
+          type="multiple" 
+          value={preferences.types}
+          onValueChange={handleTypeChange}
+          className="justify-start"
+        >
+          <ToggleGroupItem value="rent" aria-label="Rent" className="px-4 py-2">
+            Rent
+          </ToggleGroupItem>
+          <ToggleGroupItem value="sale" aria-label="Buy" className="px-4 py-2">
+            Buy
+          </ToggleGroupItem>
+        </ToggleGroup>
       </div>
 
       <div className="space-y-2">
         <label className="block text-sm font-medium text-gray-700">Property Size (m²)</label>
         <div className="px-3">
           <Slider
-            value={sizeRange}
+            value={[preferences.minSize, preferences.maxSize]}
             onValueChange={handleSizeRangeChange}
             min={10}
             max={500}
@@ -106,8 +92,8 @@ const ListingPreferencesForm: React.FC<ListingPreferencesFormProps> = ({
             className="w-full"
           />
           <div className="flex justify-between text-sm text-gray-500 mt-2">
-            <span>{sizeRange[0]} m²</span>
-            <span>{sizeRange[1]} m²</span>
+            <span>{preferences.minSize} m²</span>
+            <span>{preferences.maxSize} m²</span>
           </div>
         </div>
       </div>
@@ -116,7 +102,7 @@ const ListingPreferencesForm: React.FC<ListingPreferencesFormProps> = ({
         <label className="block text-sm font-medium text-gray-700">Price Range</label>
         <div className="px-3">
           <Slider
-            value={priceRange}
+            value={[preferences.minPrice, preferences.maxPrice]}
             onValueChange={handlePriceRangeChange}
             min={500}
             max={2000000}
@@ -124,8 +110,8 @@ const ListingPreferencesForm: React.FC<ListingPreferencesFormProps> = ({
             className="w-full"
           />
           <div className="flex justify-between text-sm text-gray-500 mt-2">
-            <span>{formatPrice(priceRange[0])}</span>
-            <span>{formatPrice(priceRange[1])}</span>
+            <span>{formatPrice(preferences.minPrice)}</span>
+            <span>{formatPrice(preferences.maxPrice)}</span>
           </div>
         </div>
       </div>
