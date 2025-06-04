@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { UserPlus, Copy, Check } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
@@ -31,18 +30,29 @@ const ShortlistInviteModal: React.FC<ShortlistInviteModalProps> = ({
   const [invitingUsers, setInvitingUsers] = useState<Set<string>>(new Set());
 
   useEffect(() => {
+    console.log('=== MODAL STATE CHANGE ===');
+    console.log('Modal isOpen:', isOpen);
+    console.log('Shortlist ID:', shortlistId);
+    console.log('Connections:', connections);
+    console.log('Connections length:', connections?.length);
+
+    if (!isOpen) {
+      console.log('Modal is closed, not fetching');
+      return;
+    }
+
+    if (!shortlistId) {
+      console.log('No shortlist ID, not fetching');
+      return;
+    }
+
+    console.log('Modal is open and we have shortlist ID, proceeding...');
+
     const fetchStatuses = async () => {
-      if (!isOpen || !shortlistId || !connections.length) {
-        console.log('Not fetching - modal closed, no shortlist, or no connections');
-        return;
-      }
-
-      console.log('=== FETCHING INVITATION STATUSES ===');
-      console.log('Shortlist ID:', shortlistId);
-      console.log('Connections count:', connections.length);
-      console.log('Connection IDs:', connections.map(c => c.id));
-
+      console.log('=== STARTING fetchStatuses ===');
+      
       try {
+        // First, fetch all invitations for this shortlist
         const { data: invitations, error } = await supabase
           .from('shortlist_invitations')
           .select('invitee_id, status')
@@ -53,25 +63,20 @@ const ShortlistInviteModal: React.FC<ShortlistInviteModalProps> = ({
           return;
         }
 
-        console.log('Raw invitations from DB:', invitations);
+        console.log('Fetched invitations:', invitations);
 
-        // Create status object - start with all connections as not_invited
+        // Create status map for all connections
         const statusMap: {[key: string]: string} = {};
         
+        // Initialize all connections as not_invited
         connections.forEach(connection => {
           statusMap[connection.id] = 'not_invited';
-          console.log(`Initialized ${connection.name} (${connection.id}) as: not_invited`);
         });
 
         // Update with actual invitation statuses
         if (invitations && invitations.length > 0) {
           invitations.forEach(invitation => {
-            if (statusMap.hasOwnProperty(invitation.invitee_id)) {
-              statusMap[invitation.invitee_id] = invitation.status;
-              console.log(`Updated ${invitation.invitee_id} to status: ${invitation.status}`);
-            } else {
-              console.log(`Invitation found for ${invitation.invitee_id} but not in connections list`);
-            }
+            statusMap[invitation.invitee_id] = invitation.status;
           });
         }
 
@@ -83,11 +88,9 @@ const ShortlistInviteModal: React.FC<ShortlistInviteModalProps> = ({
       }
     };
 
-    if (isOpen) {
-      // Clear previous statuses and fetch fresh ones
-      setInvitationStatuses({});
-      fetchStatuses();
-    }
+    // Always fetch statuses when modal opens, regardless of connections
+    fetchStatuses();
+    
   }, [isOpen, shortlistId, connections]);
 
   const handleInviteUser = async (connectionId: string) => {
@@ -151,7 +154,7 @@ const ShortlistInviteModal: React.FC<ShortlistInviteModalProps> = ({
     const status = invitationStatuses[connection.id];
     const isCurrentlyInviting = invitingUsers.has(connection.id);
     
-    console.log(`Rendering button for ${connection.name} (${connection.id}): status=${status}, inviting=${isCurrentlyInviting}`);
+    console.log(`Button for ${connection.name}: status=${status}, inviting=${isCurrentlyInviting}`);
     
     if (isCurrentlyInviting) {
       return (
