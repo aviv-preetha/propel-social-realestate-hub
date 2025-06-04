@@ -57,7 +57,8 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
     name: user.name,
     description: user.description || '',
     location: user.location || '',
-    badge: user.badge
+    badge: user.badge,
+    listing_preference: user.listing_preference || ''
   });
 
   const [listingPreferences, setListingPreferences] = useState<ListingPreferences>(
@@ -71,7 +72,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
       ...formData,
       listing_preference: user.badge === 'seeker' 
         ? JSON.stringify(listingPreferences)
-        : formData.listing_preference || user.listing_preference
+        : formData.listing_preference
     };
 
     onSave(updatedData);
