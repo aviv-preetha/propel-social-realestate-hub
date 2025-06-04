@@ -1,7 +1,6 @@
 
 import React from 'react';
 import { Input } from './ui/input';
-import { Slider } from './ui/slider';
 import { ToggleGroup, ToggleGroupItem } from './ui/toggle-group';
 
 interface ListingPreferences {
@@ -29,19 +28,35 @@ const ListingPreferencesForm: React.FC<ListingPreferencesFormProps> = ({
     });
   };
 
-  const handleSizeRangeChange = (values: number[]) => {
+  const handleMinSizeChange = (value: string) => {
+    const numValue = parseInt(value) || 0;
     onChange({
       ...preferences,
-      minSize: values[0],
-      maxSize: values[1]
+      minSize: numValue
     });
   };
 
-  const handlePriceRangeChange = (values: number[]) => {
+  const handleMaxSizeChange = (value: string) => {
+    const numValue = parseInt(value) || 0;
     onChange({
       ...preferences,
-      minPrice: values[0],
-      maxPrice: values[1]
+      maxSize: numValue
+    });
+  };
+
+  const handleMinPriceChange = (value: string) => {
+    const numValue = parseInt(value) || 0;
+    onChange({
+      ...preferences,
+      minPrice: numValue
+    });
+  };
+
+  const handleMaxPriceChange = (value: string) => {
+    const numValue = parseInt(value) || 0;
+    onChange({
+      ...preferences,
+      maxPrice: numValue
     });
   };
 
@@ -50,15 +65,6 @@ const ListingPreferencesForm: React.FC<ListingPreferencesFormProps> = ({
       ...preferences,
       location
     });
-  };
-
-  const formatPrice = (price: number) => {
-    if (price >= 1000000) {
-      return `€${(price / 1000000).toFixed(1)}M`;
-    } else if (price >= 1000) {
-      return `€${(price / 1000).toFixed(0)}K`;
-    }
-    return `€${price}`;
   };
 
   return (
@@ -74,14 +80,14 @@ const ListingPreferencesForm: React.FC<ListingPreferencesFormProps> = ({
           <ToggleGroupItem 
             value="rent" 
             aria-label="Rent" 
-            className="px-4 py-2 border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 data-[state=on]:bg-blue-600 data-[state=on]:text-white data-[state=on]:border-blue-600"
+            className="px-4 py-2 border border-gray-400 bg-white text-gray-800 hover:bg-gray-100 data-[state=on]:bg-blue-600 data-[state=on]:text-white data-[state=on]:border-blue-600 font-medium"
           >
             Rent
           </ToggleGroupItem>
           <ToggleGroupItem 
             value="sale" 
             aria-label="Buy" 
-            className="px-4 py-2 border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 data-[state=on]:bg-blue-600 data-[state=on]:text-white data-[state=on]:border-blue-600"
+            className="px-4 py-2 border border-gray-400 bg-white text-gray-800 hover:bg-gray-100 data-[state=on]:bg-blue-600 data-[state=on]:text-white data-[state=on]:border-blue-600 font-medium"
           >
             Buy
           </ToggleGroupItem>
@@ -90,36 +96,52 @@ const ListingPreferencesForm: React.FC<ListingPreferencesFormProps> = ({
 
       <div className="space-y-2">
         <label className="block text-sm font-medium text-gray-700">Property Size (m²)</label>
-        <div className="px-3">
-          <Slider
-            value={[preferences.minSize, preferences.maxSize]}
-            onValueChange={handleSizeRangeChange}
-            min={10}
-            max={500}
-            step={5}
-            className="w-full"
-          />
-          <div className="flex justify-between text-sm text-gray-500 mt-2">
-            <span>{preferences.minSize} m²</span>
-            <span>{preferences.maxSize} m²</span>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Min Size</label>
+            <Input
+              type="number"
+              value={preferences.minSize}
+              onChange={(e) => handleMinSizeChange(e.target.value)}
+              placeholder="Min m²"
+              min="0"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Max Size</label>
+            <Input
+              type="number"
+              value={preferences.maxSize}
+              onChange={(e) => handleMaxSizeChange(e.target.value)}
+              placeholder="Max m²"
+              min="0"
+            />
           </div>
         </div>
       </div>
 
       <div className="space-y-2">
-        <label className="block text-sm font-medium text-gray-700">Price Range</label>
-        <div className="px-3">
-          <Slider
-            value={[preferences.minPrice, preferences.maxPrice]}
-            onValueChange={handlePriceRangeChange}
-            min={500}
-            max={2000000}
-            step={1000}
-            className="w-full"
-          />
-          <div className="flex justify-between text-sm text-gray-500 mt-2">
-            <span>{formatPrice(preferences.minPrice)}</span>
-            <span>{formatPrice(preferences.maxPrice)}</span>
+        <label className="block text-sm font-medium text-gray-700">Price Range (€)</label>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Min Price</label>
+            <Input
+              type="number"
+              value={preferences.minPrice}
+              onChange={(e) => handleMinPriceChange(e.target.value)}
+              placeholder="Min €"
+              min="0"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Max Price</label>
+            <Input
+              type="number"
+              value={preferences.maxPrice}
+              onChange={(e) => handleMaxPriceChange(e.target.value)}
+              placeholder="Max €"
+              min="0"
+            />
           </div>
         </div>
       </div>
