@@ -32,13 +32,15 @@ const RatingModal: React.FC<RatingModalProps> = ({
 
   // Load existing rating data when modal opens
   useEffect(() => {
-    if (isOpen && businessUser.id) {
+    if (isOpen && businessUser && businessUser.id) {
       loadExistingRating();
     }
-  }, [isOpen, businessUser.id]);
+  }, [isOpen, businessUser?.id]);
 
   const loadExistingRating = async () => {
     try {
+      if (!businessUser?.id) return;
+      
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
@@ -72,6 +74,15 @@ const RatingModal: React.FC<RatingModalProps> = ({
       toast({
         title: "Please select a rating",
         description: "You must select at least 1 star to submit a rating.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!businessUser?.id) {
+      toast({
+        title: "Error",
+        description: "Invalid business user.",
         variant: "destructive",
       });
       return;
@@ -151,7 +162,7 @@ const RatingModal: React.FC<RatingModalProps> = ({
     }
   }, [isOpen]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !businessUser) return null;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
