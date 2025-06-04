@@ -277,7 +277,7 @@ const Profile: React.FC = () => {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {(isOwner || isBusiness) && (
           <div 
             className={`bg-white rounded-xl shadow-sm border p-6 cursor-pointer transition-all duration-200 ${
