@@ -32,11 +32,20 @@ const ShortlistInviteModal: React.FC<ShortlistInviteModalProps> = ({
     const fetchInvitationStatuses = async () => {
       if (!isOpen || !connections.length) return;
       
+      console.log('Fetching invitation statuses for shortlist:', shortlistId);
       const statuses: {[key: string]: string} = {};
+      
       for (const connection of connections) {
-        const status = await checkInvitationStatus(shortlistId, connection.id);
-        statuses[connection.id] = status;
+        try {
+          const status = await checkInvitationStatus(shortlistId, connection.id);
+          statuses[connection.id] = status;
+          console.log(`Status for ${connection.name} (${connection.id}):`, status);
+        } catch (error) {
+          console.error('Error checking invitation status:', error);
+          statuses[connection.id] = 'not_invited';
+        }
       }
+      
       setInvitationStatuses(statuses);
     };
 
@@ -52,8 +61,32 @@ const ShortlistInviteModal: React.FC<ShortlistInviteModalProps> = ({
         ...prev,
         [connectionId]: 'pending'
       }));
-    } catch (error) {
+      
+      toast({
+        title: "Invitation sent!",
+        description: "Your invitation has been sent successfully",
+      });
+    } catch (error: any) {
       console.error('Error inviting user:', error);
+      
+      // Check if it's a duplicate invitation error
+      if (error?.code === '23505' || error?.message?.includes('already exists')) {
+        setInvitationStatuses(prev => ({
+          ...prev,
+          [connectionId]: 'pending'
+        }));
+        toast({
+          title: "Already invited",
+          description: "This user has already been invited to this shortlist",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to send invitation",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -74,21 +107,21 @@ const ShortlistInviteModal: React.FC<ShortlistInviteModalProps> = ({
     switch (status) {
       case 'pending':
         return (
-          <Button size="sm" disabled className="bg-yellow-100 text-yellow-800">
+          <Button size="sm" disabled className="bg-yellow-100 text-yellow-800 border border-yellow-300">
             <Check className="h-4 w-4 mr-1" />
             Invited
           </Button>
         );
       case 'accepted':
         return (
-          <Button size="sm" disabled className="bg-green-100 text-green-800">
+          <Button size="sm" disabled className="bg-green-100 text-green-800 border border-green-300">
             <Check className="h-4 w-4 mr-1" />
             Joined
           </Button>
         );
       case 'rejected':
         return (
-          <Button size="sm" disabled className="bg-red-100 text-red-800">
+          <Button size="sm" disabled className="bg-red-100 text-red-800 border border-red-300">
             Declined
           </Button>
         );
@@ -98,6 +131,7 @@ const ShortlistInviteModal: React.FC<ShortlistInviteModalProps> = ({
             size="sm"
             onClick={() => handleInviteUser(connectionId)}
             disabled={isLoading}
+            className="bg-blue-600 hover:bg-blue-700 text-white"
           >
             <UserPlus className="h-4 w-4 mr-1" />
             Invite

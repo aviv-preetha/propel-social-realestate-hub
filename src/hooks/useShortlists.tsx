@@ -119,6 +119,7 @@ export function useShortlists() {
     if (!profile?.id) return;
 
     try {
+      console.log('Fetching invitations for user:', profile.id);
       const { data: invitationData, error } = await supabase
         .from('shortlist_invitations')
         .select('*')
@@ -126,7 +127,12 @@ export function useShortlists() {
         .eq('status', 'pending')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching invitations:', error);
+        throw error;
+      }
+
+      console.log('Raw invitation data:', invitationData);
 
       if (!invitationData || invitationData.length === 0) {
         setInvitations([]);
@@ -154,6 +160,7 @@ export function useShortlists() {
         };
       });
 
+      console.log('Formatted invitations:', formattedInvitations);
       setInvitations(formattedInvitations);
     } catch (error) {
       console.error('Error fetching invitations:', error);
@@ -275,27 +282,58 @@ export function useShortlists() {
     }
 
     try {
-      const { error } = await supabase
+      console.log('Sending invitation from', profile.id, 'to', inviteeId, 'for shortlist', shortlistId);
+      
+      // Check if invitation already exists
+      const { data: existingInvitation, error: checkError } = await supabase
         .from('shortlist_invitations')
-        .insert({
-          shortlist_id: shortlistId,
-          inviter_id: profile.id,
-          invitee_id: inviteeId
-        });
+        .select('id, status')
+        .eq('shortlist_id', shortlistId)
+        .eq('invitee_id', inviteeId)
+        .single();
 
-      if (error) throw error;
+      if (checkError && checkError.code !== 'PGRST116') {
+        throw checkError;
+      }
 
-      toast({
-        title: "Invitation sent!",
-        description: "Your invitation has been sent",
-      });
+      if (existingInvitation) {
+        console.log('Invitation already exists:', existingInvitation);
+        if (existingInvitation.status === 'pending') {
+          // Already has a pending invitation
+          return;
+        } else if (existingInvitation.status === 'rejected') {
+          // Update existing rejected invitation to pending
+          const { error: updateError } = await supabase
+            .from('shortlist_invitations')
+            .update({ 
+              status: 'pending', 
+              updated_at: new Date().toISOString(),
+              inviter_id: profile.id 
+            })
+            .eq('id', existingInvitation.id);
+
+          if (updateError) throw updateError;
+        } else {
+          // Already accepted
+          return;
+        }
+      } else {
+        // Create new invitation
+        const { error } = await supabase
+          .from('shortlist_invitations')
+          .insert({
+            shortlist_id: shortlistId,
+            inviter_id: profile.id,
+            invitee_id: inviteeId
+          });
+
+        if (error) throw error;
+      }
+
+      console.log('Invitation sent successfully');
     } catch (error) {
       console.error('Error sending invitation:', error);
-      toast({
-        title: "Error",
-        description: "Failed to send invitation",
-        variant: "destructive",
-      });
+      throw error; // Re-throw to let the component handle it
     }
   };
 
@@ -306,7 +344,12 @@ export function useShortlists() {
         p_user_id: userId
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error checking invitation status:', error);
+        throw error;
+      }
+      
+      console.log('Invitation status for user', userId, 'shortlist', shortlistId, ':', data);
       return data;
     } catch (error) {
       console.error('Error checking invitation status:', error);
@@ -316,6 +359,8 @@ export function useShortlists() {
 
   const respondToInvitation = async (invitationId: string, accept: boolean) => {
     try {
+      console.log('Responding to invitation:', invitationId, 'accept:', accept);
+      
       if (accept) {
         const { data, error } = await supabase.rpc('accept_shortlist_invitation', {
           invitation_id: invitationId
