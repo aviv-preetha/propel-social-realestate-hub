@@ -163,7 +163,7 @@ const ShortlistsManager: React.FC = () => {
 
   const copyShareLink = () => {
     if (!selectedShortlist) return;
-    const shareUrl = `${window.location.origin}/shortlist/shared/${selectedShortlist.shareToken}`;
+    const shareUrl = `${window.location.origin}/favourites/shared/${selectedShortlist.shareToken}`;
     navigator.clipboard.writeText(shareUrl);
     toast({
       title: "Link copied!",
@@ -266,21 +266,21 @@ const ShortlistsManager: React.FC = () => {
   return (
     <div className="max-w-4xl mx-auto p-6">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">My Shortlists</h1>
+        <h1 className="text-2xl font-bold">My Favourites</h1>
         <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="h-4 w-4 mr-2" />
-              Create Shortlist
+              Create Favourites List
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Create New Shortlist</DialogTitle>
+              <DialogTitle>Create New Favourites List</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <Input
-                placeholder="Shortlist name"
+                placeholder="Favourites list name"
                 value={newShortlistName}
                 onChange={(e) => setNewShortlistName(e.target.value)}
               />
@@ -295,7 +295,7 @@ const ShortlistsManager: React.FC = () => {
                 disabled={!newShortlistName.trim()}
                 className="w-full"
               >
-                Create Shortlist
+                Create Favourites List
               </Button>
             </div>
           </DialogContent>
@@ -343,7 +343,7 @@ const ShortlistsManager: React.FC = () => {
         </div>
       )}
 
-      {/* Shortlists Grid */}
+      {/* Favourites Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {shortlists.map((shortlist) => (
           <div key={shortlist.id} className="p-6 border rounded-lg bg-white shadow-sm">
@@ -408,7 +408,7 @@ const ShortlistsManager: React.FC = () => {
                     </div>
                   ))
                 ) : (
-                  <p className="text-gray-500 text-sm text-center py-4">No properties in this shortlist</p>
+                  <p className="text-gray-500 text-sm text-center py-4">No properties in this favourites list</p>
                 )}
               </div>
             )}

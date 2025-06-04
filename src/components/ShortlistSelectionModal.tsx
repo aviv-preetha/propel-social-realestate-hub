@@ -45,14 +45,14 @@ const ShortlistSelectionModal: React.FC<ShortlistSelectionModalProps> = ({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Add to Shortlist</DialogTitle>
+          <DialogTitle>Add to Favourites</DialogTitle>
         </DialogHeader>
         
         <div className="space-y-4">
           {!showCreateForm ? (
             <>
               <div className="space-y-2">
-                <h3 className="font-medium">Select a shortlist:</h3>
+                <h3 className="font-medium">Select a favourites list:</h3>
                 {shortlists.length > 0 ? (
                   <div className="space-y-2 max-h-48 overflow-y-auto">
                     {shortlists.map((shortlist) => (
@@ -69,7 +69,7 @@ const ShortlistSelectionModal: React.FC<ShortlistSelectionModalProps> = ({
                     ))}
                   </div>
                 ) : (
-                  <p className="text-gray-500 text-sm">No shortlists yet</p>
+                  <p className="text-gray-500 text-sm">No favourites lists yet</p>
                 )}
               </div>
               
@@ -79,15 +79,15 @@ const ShortlistSelectionModal: React.FC<ShortlistSelectionModalProps> = ({
                 className="w-full"
               >
                 <Plus className="h-4 w-4 mr-2" />
-                Create New Shortlist
+                Create New Favourites List
               </Button>
             </>
           ) : (
             <div className="space-y-4">
-              <h3 className="font-medium">Create New Shortlist:</h3>
+              <h3 className="font-medium">Create New Favourites List:</h3>
               <div className="space-y-3">
                 <Input
-                  placeholder="Shortlist name"
+                  placeholder="Favourites list name"
                   value={newShortlistName}
                   onChange={(e) => setNewShortlistName(e.target.value)}
                 />
