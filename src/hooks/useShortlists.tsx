@@ -14,6 +14,7 @@ export interface Shortlist {
   created_at: string;
   updated_at: string;
   properties?: any[];
+  shortlist_properties?: any[];
 }
 
 export interface ShortlistInvitation {
