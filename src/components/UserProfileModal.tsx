@@ -36,7 +36,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onClose, us
   }
 
   // Filter posts by the user
-  const userPosts = posts.filter(post => post.userId === user.user_id);
+  const userPosts = posts.filter(post => post.userId === user.id);
   const ratingStats = user.badge === 'business' ? getRatingStats(user.id) : null;
 
   useEffect(() => {
@@ -199,7 +199,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onClose, us
                       </div>
                     )}
                     <p className="text-xs text-gray-500">
-                      {new Date(post.created_at).toLocaleDateString()}
+                      {post.timestamp.toLocaleDateString()}
                     </p>
                   </div>
                 ))}
