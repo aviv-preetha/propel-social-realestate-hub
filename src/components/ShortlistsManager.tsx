@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Plus, Users, Share2, Copy, UserPlus, Eye, Heart, X } from 'lucide-react';
 import { Button } from './ui/button';
@@ -33,29 +32,39 @@ const ShortlistsManager: React.FC = () => {
       
       for (const shortlist of shortlists) {
         try {
+          // Query shortlist_properties table and join with properties
           const { data, error } = await supabase
             .from('shortlist_properties')
-            .select(`
-              property_id,
-              properties (
-                id,
-                title,
-                description,
-                price,
-                type,
-                location,
-                bedrooms,
-                bathrooms,
-                area,
-                images
-              )
-            `)
+            .select('property_id')
             .eq('shortlist_id', shortlist.id);
 
-          if (error) throw error;
-          propertiesData[shortlist.id] = data?.map(item => item.properties).filter(Boolean) || [];
+          if (error) {
+            console.error('Error fetching shortlist property IDs:', error);
+            propertiesData[shortlist.id] = [];
+            continue;
+          }
+
+          if (!data || data.length === 0) {
+            propertiesData[shortlist.id] = [];
+            continue;
+          }
+
+          // Fetch the actual property details
+          const propertyIds = data.map(item => item.property_id);
+          const { data: propertyDetails, error: propertiesError } = await supabase
+            .from('properties')
+            .select('*')
+            .in('id', propertyIds);
+
+          if (propertiesError) {
+            console.error('Error fetching property details:', propertiesError);
+            propertiesData[shortlist.id] = [];
+          } else {
+            propertiesData[shortlist.id] = propertyDetails || [];
+          }
         } catch (error) {
           console.error('Error fetching shortlist properties:', error);
+          propertiesData[shortlist.id] = [];
         }
       }
       
@@ -229,7 +238,7 @@ const ShortlistsManager: React.FC = () => {
                   <p className="text-gray-600 text-sm mt-1">{shortlist.description}</p>
                 )}
                 <p className="text-sm text-gray-500 mt-2">
-                  {shortlistProperties[shortlist.id]?.length || 0} properties
+                  {shortlist.property_count || 0} properties
                 </p>
               </div>
               {shortlist.is_shared && (

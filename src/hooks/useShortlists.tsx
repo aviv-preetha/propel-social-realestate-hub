@@ -201,6 +201,27 @@ export function useShortlists() {
     }
 
     try {
+      // Check if property is already in the shortlist
+      const { data: existingEntry, error: checkError } = await supabase
+        .from('shortlist_properties')
+        .select('id')
+        .eq('shortlist_id', shortlistId)
+        .eq('property_id', propertyId)
+        .single();
+
+      if (checkError && checkError.code !== 'PGRST116') {
+        throw checkError;
+      }
+
+      if (existingEntry) {
+        toast({
+          title: "Already added",
+          description: "This property is already in the shortlist",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const { error } = await supabase
         .from('shortlist_properties')
         .insert({
