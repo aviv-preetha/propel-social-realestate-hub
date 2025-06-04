@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
@@ -14,6 +13,7 @@ export interface Shortlist {
   share_token: string;
   created_at: string;
   updated_at: string;
+  properties?: any[];
 }
 
 export interface ShortlistInvitation {
@@ -40,10 +40,15 @@ export function useShortlists() {
     if (!profile?.id) return;
 
     try {
-      // Fetch user's own shortlists
+      // Fetch user's own shortlists with property counts
       const { data: ownShortlists, error: ownError } = await supabase
         .from('shortlists')
-        .select('*')
+        .select(`
+          *,
+          shortlist_properties (
+            property_id
+          )
+        `)
         .eq('user_id', profile.id)
         .order('created_at', { ascending: false });
 
@@ -63,7 +68,12 @@ export function useShortlists() {
         const shortlistIds = memberData.map(m => m.shortlist_id);
         const { data: sharedShortlists, error: sharedError } = await supabase
           .from('shortlists')
-          .select('*')
+          .select(`
+            *,
+            shortlist_properties (
+              property_id
+            )
+          `)
           .in('id', shortlistIds);
 
         if (sharedError) throw sharedError;
@@ -73,7 +83,10 @@ export function useShortlists() {
       const allShortlists = [
         ...(ownShortlists || []),
         ...memberShortlists
-      ];
+      ].map(shortlist => ({
+        ...shortlist,
+        properties: shortlist.shortlist_properties || []
+      }));
 
       setShortlists(allShortlists);
     } catch (error) {
@@ -104,27 +117,18 @@ export function useShortlists() {
         return;
       }
 
-      // Fetch shortlist details for each invitation
+      // Fetch shortlist and inviter details
       const shortlistIds = invitationData.map(inv => inv.shortlist_id);
-      const { data: shortlistData, error: shortlistError } = await supabase
-        .from('shortlists')
-        .select('*')
-        .in('id', shortlistIds);
-
-      if (shortlistError) throw shortlistError;
-
-      // Fetch inviter details
       const inviterIds = invitationData.map(inv => inv.inviter_id);
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('id, name')
-        .in('id', inviterIds);
 
-      if (profileError) throw profileError;
+      const [shortlistResult, profileResult] = await Promise.all([
+        supabase.from('shortlists').select('*').in('id', shortlistIds),
+        supabase.from('profiles').select('id, name').in('id', inviterIds)
+      ]);
 
       const formattedInvitations = invitationData.map(inv => {
-        const shortlist = shortlistData?.find(s => s.id === inv.shortlist_id);
-        const inviter = profileData?.find(p => p.id === inv.inviter_id);
+        const shortlist = shortlistResult.data?.find(s => s.id === inv.shortlist_id);
+        const inviter = profileResult.data?.find(p => p.id === inv.inviter_id);
         
         return {
           ...inv,

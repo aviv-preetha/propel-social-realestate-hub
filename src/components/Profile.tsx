@@ -6,6 +6,7 @@ import { useConnections } from '@/hooks/useConnections';
 import { useProperties } from '@/hooks/useProperties';
 import { useBusinessRatings } from '@/hooks/useBusinessRatings';
 import { usePosts } from '@/hooks/usePosts';
+import { useShortlists } from '@/hooks/useShortlists';
 import AvatarWithBadge from './AvatarWithBadge';
 import UserBadge from './UserBadge';
 import StarRating from './StarRating';
@@ -14,7 +15,6 @@ import EditProfileModal from './EditProfileModal';
 import BusinessReviews from './BusinessReviews';
 import UserConnections from './UserConnections';
 import UserProperties from './UserProperties';
-import ShortlistedProperties from './ShortlistedProperties';
 import ShortlistsManager from './ShortlistsManager';
 import UserPosts from './UserPosts';
 import { useToast } from '@/hooks/use-toast';
@@ -46,12 +46,13 @@ const Profile: React.FC = () => {
   const { user } = useAuth();
   const { profile, updateProfile } = useProfile();
   const { connections } = useConnections();
-  const { properties, shortlistedProperties } = useProperties();
+  const { properties } = useProperties();
   const { fetchBusinessRatings, getRatingStats } = useBusinessRatings();
   const { posts } = usePosts();
+  const { shortlists } = useShortlists();
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
-  const [activeSection, setActiveSection] = useState<'reviews' | 'connections' | 'properties' | 'shortlisted' | 'shortlists' | 'posts' | null>(null);
+  const [activeSection, setActiveSection] = useState<'reviews' | 'connections' | 'properties' | 'shortlists' | 'posts' | null>(null);
   const { toast } = useToast();
 
   // Fetch ratings if current user is a business
@@ -106,7 +107,7 @@ const Profile: React.FC = () => {
     }
   };
 
-  const handleSectionToggle = (section: 'reviews' | 'connections' | 'properties' | 'shortlisted' | 'shortlists' | 'posts') => {
+  const handleSectionToggle = (section: 'reviews' | 'connections' | 'properties' | 'shortlists' | 'posts') => {
     setActiveSection(activeSection === section ? null : section);
   };
 
@@ -151,6 +152,11 @@ const Profile: React.FC = () => {
 
   // Count posts by this user
   const userPostsCount = posts.filter(post => post.userId === profile.id).length;
+
+  // Count total properties across all shortlists
+  const totalShortlistedCount = shortlists.reduce((total, shortlist) => {
+    return total + (shortlist.properties?.length || 0);
+  }, 0);
 
   // Parse listing preferences for seeker users
   const listingPreferences = isSeeker ? parseListingPreference(profile.listing_preference) : null;
@@ -295,33 +301,18 @@ const Profile: React.FC = () => {
         )}
         
         {isSeeker && (
-          <>
-            <div 
-              className={`bg-white rounded-xl shadow-sm border p-6 cursor-pointer transition-all duration-200 ${
-                activeSection === 'shortlisted' ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:shadow-md'
-              }`}
-              onClick={() => handleSectionToggle('shortlisted')}
-            >
-              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-3 mx-auto">
-                <Heart className="h-6 w-6 text-green-600" />
-              </div>
-              <h3 className="text-2xl font-bold text-gray-900 text-center">{shortlistedProperties.length}</h3>
-              <p className="text-gray-600 text-center">Shortlisted</p>
+          <div 
+            className={`bg-white rounded-xl shadow-sm border p-6 cursor-pointer transition-all duration-200 ${
+              activeSection === 'shortlists' ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:shadow-md'
+            }`}
+            onClick={() => handleSectionToggle('shortlists')}
+          >
+            <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mb-3 mx-auto">
+              <List className="h-6 w-6 text-indigo-600" />
             </div>
-            
-            <div 
-              className={`bg-white rounded-xl shadow-sm border p-6 cursor-pointer transition-all duration-200 ${
-                activeSection === 'shortlists' ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:shadow-md'
-              }`}
-              onClick={() => handleSectionToggle('shortlists')}
-            >
-              <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mb-3 mx-auto">
-                <List className="h-6 w-6 text-indigo-600" />
-              </div>
-              <h3 className="text-2xl font-bold text-gray-900 text-center">Shortlists</h3>
-              <p className="text-gray-600 text-center">Manage Lists</p>
-            </div>
-          </>
+            <h3 className="text-2xl font-bold text-gray-900 text-center">{totalShortlistedCount}</h3>
+            <p className="text-gray-600 text-center">Shortlists</p>
+          </div>
         )}
 
         {isBusiness && (
@@ -393,15 +384,6 @@ const Profile: React.FC = () => {
             <h2 className="text-xl font-semibold text-gray-900">My Properties</h2>
           </div>
           <UserProperties ownerId={profile.id} />
-        </div>
-      )}
-
-      {isSeeker && activeSection === 'shortlisted' && (
-        <div className="bg-white rounded-xl shadow-sm border">
-          <div className="p-6 border-b">
-            <h2 className="text-xl font-semibold text-gray-900">Shortlisted Properties</h2>
-          </div>
-          <ShortlistedProperties />
         </div>
       )}
 

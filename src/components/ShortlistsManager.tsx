@@ -1,17 +1,21 @@
 
-import React, { useState } from 'react';
-import { Plus, Users, Share2, Copy, UserPlus } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Plus, Users, Share2, Copy, UserPlus, Eye, Heart, X } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { useShortlists } from '@/hooks/useShortlists';
 import { useConnections } from '@/hooks/useConnections';
+import { useProperties } from '@/hooks/useProperties';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 const ShortlistsManager: React.FC = () => {
-  const { shortlists, invitations, createShortlist, inviteToShortlist, respondToInvitation, updateShortlistSharing } = useShortlists();
+  const { shortlists, invitations, createShortlist, inviteToShortlist, respondToInvitation, updateShortlistSharing, refetch } = useShortlists();
   const { connections } = useConnections();
+  const { properties } = useProperties();
   const { toast } = useToast();
   
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -19,6 +23,49 @@ const ShortlistsManager: React.FC = () => {
   const [selectedShortlistId, setSelectedShortlistId] = useState<string>('');
   const [newShortlistName, setNewShortlistName] = useState('');
   const [newShortlistDescription, setNewShortlistDescription] = useState('');
+  const [viewingShortlistId, setViewingShortlistId] = useState<string | null>(null);
+  const [shortlistProperties, setShortlistProperties] = useState<{[key: string]: any[]}>({});
+
+  // Fetch properties for each shortlist
+  useEffect(() => {
+    const fetchShortlistProperties = async () => {
+      const propertiesData: {[key: string]: any[]} = {};
+      
+      for (const shortlist of shortlists) {
+        try {
+          const { data, error } = await supabase
+            .from('shortlist_properties')
+            .select(`
+              property_id,
+              properties (
+                id,
+                title,
+                description,
+                price,
+                type,
+                location,
+                bedrooms,
+                bathrooms,
+                area,
+                images
+              )
+            `)
+            .eq('shortlist_id', shortlist.id);
+
+          if (error) throw error;
+          propertiesData[shortlist.id] = data?.map(item => item.properties).filter(Boolean) || [];
+        } catch (error) {
+          console.error('Error fetching shortlist properties:', error);
+        }
+      }
+      
+      setShortlistProperties(propertiesData);
+    };
+
+    if (shortlists.length > 0) {
+      fetchShortlistProperties();
+    }
+  }, [shortlists]);
 
   const handleCreateShortlist = async () => {
     if (!newShortlistName.trim()) return;
@@ -47,6 +94,48 @@ const ShortlistsManager: React.FC = () => {
 
   const toggleSharing = async (shortlistId: string, currentSharing: boolean) => {
     await updateShortlistSharing(shortlistId, !currentSharing);
+  };
+
+  const removePropertyFromShortlist = async (shortlistId: string, propertyId: string) => {
+    try {
+      const { error } = await supabase
+        .from('shortlist_properties')
+        .delete()
+        .eq('shortlist_id', shortlistId)
+        .eq('property_id', propertyId);
+
+      if (error) throw error;
+
+      // Update local state
+      setShortlistProperties(prev => ({
+        ...prev,
+        [shortlistId]: prev[shortlistId]?.filter(property => property.id !== propertyId) || []
+      }));
+
+      toast({
+        title: "Property removed",
+        description: "Property has been removed from shortlist",
+      });
+
+      // Refresh shortlists to update counts
+      refetch();
+    } catch (error) {
+      console.error('Error removing property:', error);
+      toast({
+        title: "Error",
+        description: "Failed to remove property from shortlist",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const formatPrice = (price: number) => {
+    if (price >= 1000000) {
+      return `€${(price / 1000000).toFixed(1)}M`;
+    } else if (price >= 1000) {
+      return `€${(price / 1000).toFixed(0)}K`;
+    }
+    return `€${price}`;
   };
 
   return (
@@ -139,6 +228,9 @@ const ShortlistsManager: React.FC = () => {
                 {shortlist.description && (
                   <p className="text-gray-600 text-sm mt-1">{shortlist.description}</p>
                 )}
+                <p className="text-sm text-gray-500 mt-2">
+                  {shortlistProperties[shortlist.id]?.length || 0} properties
+                </p>
               </div>
               {shortlist.is_shared && (
                 <div className="flex items-center text-blue-600">
@@ -148,6 +240,16 @@ const ShortlistsManager: React.FC = () => {
             </div>
             
             <div className="space-y-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setViewingShortlistId(viewingShortlistId === shortlist.id ? null : shortlist.id)}
+                className="w-full"
+              >
+                <Eye className="h-4 w-4 mr-2" />
+                {viewingShortlistId === shortlist.id ? 'Hide Properties' : 'View Properties'}
+              </Button>
+              
               <Button
                 variant="outline"
                 size="sm"
@@ -185,6 +287,33 @@ const ShortlistsManager: React.FC = () => {
                 </>
               )}
             </div>
+
+            {/* Properties List */}
+            {viewingShortlistId === shortlist.id && (
+              <div className="mt-4 space-y-3 border-t pt-4">
+                {shortlistProperties[shortlist.id]?.length > 0 ? (
+                  shortlistProperties[shortlist.id].map((property) => (
+                    <div key={property.id} className="flex items-center justify-between p-3 border rounded-lg bg-gray-50">
+                      <div className="flex-1">
+                        <h4 className="font-medium text-sm">{property.title}</h4>
+                        <p className="text-xs text-gray-600">{property.location}</p>
+                        <p className="text-sm font-semibold text-blue-600">{formatPrice(property.price)}</p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removePropertyFromShortlist(shortlist.id, property.id)}
+                        className="text-red-600 hover:text-red-700"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-gray-500 text-sm text-center py-4">No properties in this shortlist</p>
+                )}
+              </div>
+            )}
           </div>
         ))}
       </div>
