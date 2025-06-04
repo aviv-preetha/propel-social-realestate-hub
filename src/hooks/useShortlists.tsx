@@ -40,7 +40,7 @@ export function useShortlists() {
     if (!profile?.id) return;
 
     try {
-      // Fetch user's own shortlists and shared shortlists they're members of
+      // Fetch user's own shortlists
       const { data: ownShortlists, error: ownError } = await supabase
         .from('shortlists')
         .select('*')
@@ -50,20 +50,29 @@ export function useShortlists() {
       if (ownError) throw ownError;
 
       // Fetch shared shortlists user is a member of
-      const { data: memberShortlists, error: memberError } = await supabase
+      const { data: memberData, error: memberError } = await supabase
         .from('shortlist_members')
-        .select(`
-          shortlist_id,
-          shortlists (*)
-        `)
+        .select('shortlist_id')
         .eq('user_id', profile.id)
         .neq('role', 'owner');
 
       if (memberError) throw memberError;
 
+      let memberShortlists: Shortlist[] = [];
+      if (memberData && memberData.length > 0) {
+        const shortlistIds = memberData.map(m => m.shortlist_id);
+        const { data: sharedShortlists, error: sharedError } = await supabase
+          .from('shortlists')
+          .select('*')
+          .in('id', shortlistIds);
+
+        if (sharedError) throw sharedError;
+        memberShortlists = sharedShortlists || [];
+      }
+
       const allShortlists = [
         ...(ownShortlists || []),
-        ...(memberShortlists?.map(m => m.shortlists).filter(Boolean) || [])
+        ...memberShortlists
       ];
 
       setShortlists(allShortlists);
@@ -81,24 +90,49 @@ export function useShortlists() {
     if (!profile?.id) return;
 
     try {
-      const { data, error } = await supabase
+      const { data: invitationData, error } = await supabase
         .from('shortlist_invitations')
-        .select(`
-          *,
-          shortlists (*),
-          profiles!shortlist_invitations_inviter_id_fkey (name)
-        `)
+        .select('*')
         .eq('invitee_id', profile.id)
         .eq('status', 'pending')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      const formattedInvitations = data?.map(inv => ({
-        ...inv,
-        shortlist: inv.shortlists,
-        inviter_name: inv.profiles?.name
-      })) || [];
+      if (!invitationData || invitationData.length === 0) {
+        setInvitations([]);
+        return;
+      }
+
+      // Fetch shortlist details for each invitation
+      const shortlistIds = invitationData.map(inv => inv.shortlist_id);
+      const { data: shortlistData, error: shortlistError } = await supabase
+        .from('shortlists')
+        .select('*')
+        .in('id', shortlistIds);
+
+      if (shortlistError) throw shortlistError;
+
+      // Fetch inviter details
+      const inviterIds = invitationData.map(inv => inv.inviter_id);
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('id, name')
+        .in('id', inviterIds);
+
+      if (profileError) throw profileError;
+
+      const formattedInvitations = invitationData.map(inv => {
+        const shortlist = shortlistData?.find(s => s.id === inv.shortlist_id);
+        const inviter = profileData?.find(p => p.id === inv.inviter_id);
+        
+        return {
+          ...inv,
+          status: inv.status as 'pending' | 'accepted' | 'rejected',
+          shortlist,
+          inviter_name: inviter?.name
+        };
+      });
 
       setInvitations(formattedInvitations);
     } catch (error) {
