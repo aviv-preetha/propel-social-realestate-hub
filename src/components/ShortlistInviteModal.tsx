@@ -27,6 +27,7 @@ const ShortlistInviteModal: React.FC<ShortlistInviteModalProps> = ({
   const { toast } = useToast();
   const [invitationStatuses, setInvitationStatuses] = useState<{[key: string]: string}>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [invitingUsers, setInvitingUsers] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const fetchInvitationStatuses = async () => {
@@ -54,10 +55,12 @@ const ShortlistInviteModal: React.FC<ShortlistInviteModalProps> = ({
 
   const handleInviteUser = async (connectionId: string) => {
     setIsLoading(true);
+    setInvitingUsers(prev => new Set([...prev, connectionId]));
+    
     try {
       await inviteToShortlist(shortlistId, connectionId);
       
-      // Immediately update local status to show as pending
+      // Set status to pending immediately and don't let it get overwritten
       setInvitationStatuses(prev => ({
         ...prev,
         [connectionId]: 'pending'
@@ -67,6 +70,21 @@ const ShortlistInviteModal: React.FC<ShortlistInviteModalProps> = ({
         title: "Invitation sent!",
         description: "Your invitation has been sent successfully",
       });
+
+      // Double-check the status after a short delay to ensure DB consistency
+      setTimeout(async () => {
+        try {
+          const actualStatus = await checkInvitationStatus(shortlistId, connectionId);
+          console.log(`Verified status for ${connectionId}:`, actualStatus);
+          setInvitationStatuses(prev => ({
+            ...prev,
+            [connectionId]: actualStatus
+          }));
+        } catch (error) {
+          console.error('Error verifying invitation status:', error);
+        }
+      }, 1000);
+      
     } catch (error: any) {
       console.error('Error inviting user:', error);
       
@@ -90,6 +108,11 @@ const ShortlistInviteModal: React.FC<ShortlistInviteModalProps> = ({
       }
     } finally {
       setIsLoading(false);
+      setInvitingUsers(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(connectionId);
+        return newSet;
+      });
     }
   };
 
@@ -104,6 +127,15 @@ const ShortlistInviteModal: React.FC<ShortlistInviteModalProps> = ({
 
   const getButtonContent = (connectionId: string) => {
     const status = invitationStatuses[connectionId];
+    const isCurrentlyInviting = invitingUsers.has(connectionId);
+    
+    if (isCurrentlyInviting) {
+      return (
+        <Button size="sm" disabled className="bg-gray-100 text-gray-600 border border-gray-300">
+          Sending...
+        </Button>
+      );
+    }
     
     switch (status) {
       case 'pending':
