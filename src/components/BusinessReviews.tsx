@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Star, MessageCircle } from 'lucide-react';
@@ -30,25 +29,63 @@ const BusinessReviews: React.FC<BusinessReviewsProps> = ({ businessId }) => {
 
   const fetchReviews = async () => {
     try {
-      const { data, error } = await supabase
+      console.log('Fetching reviews for business:', businessId);
+      
+      // First get the business ratings
+      const { data: ratingsData, error: ratingsError } = await supabase
         .from('business_ratings')
-        .select(`
-          id,
-          rating,
-          comment,
-          created_at,
-          rater:profiles!business_ratings_rater_id_fkey (
-            id,
-            name,
-            avatar_url
-          )
-        `)
+        .select('*')
         .eq('business_id', businessId)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (ratingsError) {
+        console.error('Error fetching ratings:', ratingsError);
+        throw ratingsError;
+      }
 
-      setReviews(data || []);
+      console.log('Ratings data:', ratingsData);
+
+      if (!ratingsData || ratingsData.length === 0) {
+        setReviews([]);
+        setLoading(false);
+        return;
+      }
+
+      // Get all unique rater IDs
+      const raterIds = [...new Set(ratingsData.map(rating => rating.rater_id))];
+      console.log('Rater IDs:', raterIds);
+
+      // Fetch profile data for all raters
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, name, avatar_url')
+        .in('id', raterIds);
+
+      if (profilesError) {
+        console.error('Error fetching profiles:', profilesError);
+        throw profilesError;
+      }
+
+      console.log('Profiles data:', profilesData);
+
+      // Combine ratings with profile data
+      const reviewsWithProfiles = ratingsData.map(rating => {
+        const raterProfile = profilesData?.find(profile => profile.id === rating.rater_id);
+        return {
+          id: rating.id,
+          rating: rating.rating,
+          comment: rating.comment,
+          created_at: rating.created_at,
+          rater: {
+            id: rating.rater_id,
+            name: raterProfile?.name || 'Unknown User',
+            avatar_url: raterProfile?.avatar_url || null
+          }
+        };
+      });
+
+      console.log('Reviews with profiles:', reviewsWithProfiles);
+      setReviews(reviewsWithProfiles);
     } catch (error) {
       console.error('Error fetching reviews:', error);
     } finally {
