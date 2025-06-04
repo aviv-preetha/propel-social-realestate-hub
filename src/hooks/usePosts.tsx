@@ -41,6 +41,45 @@ export function usePosts() {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
+  const createNotification = async (
+    userId: string,
+    type: 'like' | 'comment' | 'mention',
+    relatedUserId: string,
+    postId: string,
+    commentId?: string
+  ) => {
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .insert({
+          user_id: userId,
+          type,
+          related_user_id: relatedUserId,
+          post_id: postId,
+          comment_id: commentId || null,
+          is_read: false
+        });
+
+      if (error) {
+        console.error('Error creating notification:', error);
+      }
+    } catch (error) {
+      console.error('Error creating notification:', error);
+    }
+  };
+
+  const extractMentions = (content: string): string[] => {
+    const mentionRegex = /@(\w+)/g;
+    const mentions: string[] = [];
+    let match;
+    
+    while ((match = mentionRegex.exec(content)) !== null) {
+      mentions.push(match[1]);
+    }
+    
+    return mentions;
+  };
+
   const fetchPosts = async () => {
     try {
       // Fetch posts
@@ -135,6 +174,29 @@ export function usePosts() {
         .single();
 
       if (error) throw error;
+
+      // Create mentions notifications
+      const mentions = extractMentions(content);
+      if (mentions.length > 0) {
+        // Get profile IDs for mentioned usernames
+        const { data: mentionedProfiles } = await supabase
+          .from('profiles')
+          .select('id, name')
+          .in('name', mentions);
+
+        if (mentionedProfiles) {
+          for (const mentionedProfile of mentionedProfiles) {
+            if (mentionedProfile.id !== profile.id) {
+              await createNotification(
+                mentionedProfile.id,
+                'mention',
+                profile.id,
+                data.id
+              );
+            }
+          }
+        }
+      }
 
       const newPost: Post = {
         id: data.id,
@@ -285,6 +347,16 @@ export function usePosts() {
 
         if (error) throw error;
 
+        // Create notification for post owner (if not liking own post)
+        if (post.userId !== profile.id) {
+          await createNotification(
+            post.userId,
+            'like',
+            profile.id,
+            postId
+          );
+        }
+
         setPosts(prev => prev.map(p => 
           p.id === postId 
             ? { ...p, likes: [...p.likes, profile.id] }
@@ -323,6 +395,42 @@ export function usePosts() {
         .single();
 
       if (error) throw error;
+
+      const post = posts.find(p => p.id === postId);
+      
+      // Create notification for post owner (if not commenting on own post)
+      if (post && post.userId !== profile.id) {
+        await createNotification(
+          post.userId,
+          'comment',
+          profile.id,
+          postId,
+          data.id
+        );
+      }
+
+      // Create mentions notifications in comments
+      const mentions = extractMentions(content);
+      if (mentions.length > 0) {
+        const { data: mentionedProfiles } = await supabase
+          .from('profiles')
+          .select('id, name')
+          .in('name', mentions);
+
+        if (mentionedProfiles) {
+          for (const mentionedProfile of mentionedProfiles) {
+            if (mentionedProfile.id !== profile.id) {
+              await createNotification(
+                mentionedProfile.id,
+                'mention',
+                profile.id,
+                postId,
+                data.id
+              );
+            }
+          }
+        }
+      }
 
       const newComment: Comment = {
         id: data.id,
