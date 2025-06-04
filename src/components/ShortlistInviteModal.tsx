@@ -31,10 +31,16 @@ const ShortlistInviteModal: React.FC<ShortlistInviteModalProps> = ({
 
   useEffect(() => {
     const fetchInvitationStatuses = async () => {
-      if (!isOpen || !connections.length) return;
+      if (!isOpen || !connections.length) {
+        setInvitationStatuses({});
+        return;
+      }
       
       console.log('Fetching invitation statuses for shortlist:', shortlistId);
       const statuses: {[key: string]: string} = {};
+      
+      // Reset statuses first
+      setInvitationStatuses({});
       
       for (const connection of connections) {
         try {
@@ -47,11 +53,15 @@ const ShortlistInviteModal: React.FC<ShortlistInviteModalProps> = ({
         }
       }
       
+      console.log('Final statuses:', statuses);
       setInvitationStatuses(statuses);
     };
 
-    fetchInvitationStatuses();
-  }, [isOpen, connections, shortlistId, checkInvitationStatus]);
+    // Always fetch when modal opens or shortlist changes
+    if (isOpen) {
+      fetchInvitationStatuses();
+    }
+  }, [isOpen, shortlistId, connections, checkInvitationStatus]);
 
   const handleInviteUser = async (connectionId: string) => {
     setIsLoading(true);
@@ -60,7 +70,7 @@ const ShortlistInviteModal: React.FC<ShortlistInviteModalProps> = ({
     try {
       await inviteToShortlist(shortlistId, connectionId);
       
-      // Set status to pending immediately and don't let it get overwritten
+      // Set status to pending immediately
       setInvitationStatuses(prev => ({
         ...prev,
         [connectionId]: 'pending'
@@ -128,6 +138,8 @@ const ShortlistInviteModal: React.FC<ShortlistInviteModalProps> = ({
   const getButtonContent = (connectionId: string) => {
     const status = invitationStatuses[connectionId];
     const isCurrentlyInviting = invitingUsers.has(connectionId);
+    
+    console.log(`Button for ${connectionId}: status=${status}, inviting=${isCurrentlyInviting}`);
     
     if (isCurrentlyInviting) {
       return (
