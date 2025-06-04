@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { UserPlus, Users, MessageCircle, Star, Check, Clock, MapPin } from 'lucide-react';
 import UserBadge from './UserBadge';
 import StarRating from './StarRating';
-import UserPosts from './UserPosts';
 import { useConnections } from '@/hooks/useConnections';
 import { useBusinessRatings } from '@/hooks/useBusinessRatings';
 import { useProfile } from '@/hooks/useProfile';
@@ -28,7 +27,6 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onClose, us
   } = useConnections();
   const { getRatingStats } = useBusinessRatings();
   const [mutualConnections, setMutualConnections] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<'overview' | 'posts'>('overview');
 
   useEffect(() => {
     if (isOpen && profile && user) {
@@ -179,43 +177,6 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onClose, us
                 ))}
               </div>
             </div>
-          )}
-
-          {/* Tabs */}
-          <div className="border-b border-gray-200">
-            <nav className="-mb-px flex space-x-8">
-              <button
-                onClick={() => setActiveTab('overview')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === 'overview'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                Overview
-              </button>
-              <button
-                onClick={() => setActiveTab('posts')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === 'posts'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                Posts
-              </button>
-            </nav>
-          </div>
-
-          {/* Tab Content */}
-          {activeTab === 'overview' && (
-            <div className="text-center py-8">
-              <p className="text-gray-500">Overview content will be added here</p>
-            </div>
-          )}
-
-          {activeTab === 'posts' && (
-            <UserPosts userId={user.id} />
           )}
         </div>
       </DialogContent>

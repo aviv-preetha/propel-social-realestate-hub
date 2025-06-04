@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Edit, MapPin, Heart, Star, Building, Camera, MessageSquare } from 'lucide-react';
+import { Edit, MapPin, Heart, Star, Building, Camera, MessageSquare, FileText } from 'lucide-react';
 import { useProfile } from '@/hooks/useProfile';
 import { useAuth } from '@/hooks/useAuth';
 import { useConnections } from '@/hooks/useConnections';
@@ -14,6 +14,7 @@ import BusinessReviews from './BusinessReviews';
 import UserConnections from './UserConnections';
 import UserProperties from './UserProperties';
 import ShortlistedProperties from './ShortlistedProperties';
+import UserPosts from './UserPosts';
 import { useToast } from '@/hooks/use-toast';
 
 interface ListingPreferences {
@@ -48,7 +49,7 @@ const Profile: React.FC = () => {
   const { fetchBusinessRatings, getRatingStats } = useBusinessRatings();
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
-  const [activeSection, setActiveSection] = useState<'reviews' | 'connections' | 'properties' | 'shortlisted' | null>(null);
+  const [activeSection, setActiveSection] = useState<'reviews' | 'connections' | 'properties' | 'shortlisted' | 'posts' | null>(null);
   const { toast } = useToast();
 
   // Fetch ratings if current user is a business
@@ -103,7 +104,7 @@ const Profile: React.FC = () => {
     }
   };
 
-  const handleSectionToggle = (section: 'reviews' | 'connections' | 'properties' | 'shortlisted') => {
+  const handleSectionToggle = (section: 'reviews' | 'connections' | 'properties' | 'shortlisted' | 'posts') => {
     setActiveSection(activeSection === section ? null : section);
   };
 
@@ -272,7 +273,7 @@ const Profile: React.FC = () => {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         {(isOwner || isBusiness) && (
           <div 
             className={`bg-white rounded-xl shadow-sm border p-6 text-center cursor-pointer transition-all duration-200 ${
@@ -332,6 +333,19 @@ const Profile: React.FC = () => {
           <h3 className="text-2xl font-bold text-gray-900">{connections.length}</h3>
           <p className="text-gray-600">Connections</p>
         </div>
+
+        <div 
+          className={`bg-white rounded-xl shadow-sm border p-6 text-center cursor-pointer transition-all duration-200 ${
+            activeSection === 'posts' ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:shadow-md'
+          }`}
+          onClick={() => handleSectionToggle('posts')}
+        >
+          <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-3">
+            <FileText className="h-6 w-6 text-orange-600" />
+          </div>
+          <h3 className="text-2xl font-bold text-gray-900">Posts</h3>
+          <p className="text-gray-600">My Posts</p>
+        </div>
       </div>
 
       {/* Business Reviews Section */}
@@ -368,6 +382,15 @@ const Profile: React.FC = () => {
             <h2 className="text-xl font-semibold text-gray-900">Shortlisted Properties</h2>
           </div>
           <ShortlistedProperties />
+        </div>
+      )}
+
+      {activeSection === 'posts' && (
+        <div className="bg-white rounded-xl shadow-sm border">
+          <div className="p-6 border-b">
+            <h2 className="text-xl font-semibold text-gray-900">My Posts</h2>
+          </div>
+          <UserPosts userId={profile.id} />
         </div>
       )}
 
