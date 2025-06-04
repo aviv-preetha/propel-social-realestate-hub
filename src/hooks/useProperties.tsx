@@ -86,9 +86,9 @@ export function useProperties() {
 
     try {
       const { data, error } = await supabase
-        .from('shortlist_properties')
+        .from('shortlisted_properties')
         .select('property_id')
-        .eq('added_by', profile.id);
+        .eq('user_id', profile.id);
 
       if (error) throw error;
 
@@ -113,9 +113,9 @@ export function useProperties() {
 
       if (isCurrentlyShortlisted) {
         const { error } = await supabase
-          .from('shortlist_properties')
+          .from('shortlisted_properties')
           .delete()
-          .eq('added_by', profile.id)
+          .eq('user_id', profile.id)
           .eq('property_id', propertyId);
 
         if (error) throw error;
@@ -126,39 +126,11 @@ export function useProperties() {
           description: "Property has been removed from your shortlist",
         });
       } else {
-        // Find user's first shortlist or create a default one
-        const { data: shortlists, error: shortlistError } = await supabase
-          .from('shortlists')
-          .select('id')
-          .eq('user_id', profile.id)
-          .limit(1);
-
-        if (shortlistError) throw shortlistError;
-
-        let shortlistId;
-        if (shortlists && shortlists.length > 0) {
-          shortlistId = shortlists[0].id;
-        } else {
-          // Create a default shortlist if none exists
-          const { data: newShortlist, error: createError } = await supabase
-            .from('shortlists')
-            .insert({
-              name: 'My Shortlist',
-              user_id: profile.id
-            })
-            .select('id')
-            .single();
-
-          if (createError) throw createError;
-          shortlistId = newShortlist.id;
-        }
-
         const { error } = await supabase
-          .from('shortlist_properties')
+          .from('shortlisted_properties')
           .insert({
-            shortlist_id: shortlistId,
-            property_id: propertyId,
-            added_by: profile.id
+            user_id: profile.id,
+            property_id: propertyId
           });
 
         if (error) throw error;

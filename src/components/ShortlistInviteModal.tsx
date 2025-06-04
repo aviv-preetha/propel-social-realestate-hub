@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { UserPlus, Copy, Check } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
@@ -5,7 +6,6 @@ import { Button } from './ui/button';
 import { useConnections } from '@/hooks/useConnections';
 import { useShortlists } from '@/hooks/useShortlists';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 
 interface ShortlistInviteModalProps {
   isOpen: boolean;
@@ -23,121 +23,39 @@ const ShortlistInviteModal: React.FC<ShortlistInviteModalProps> = ({
   shareToken
 }) => {
   const { connections } = useConnections();
-  const { inviteToShortlist } = useShortlists();
+  const { inviteToShortlist, checkInvitationStatus } = useShortlists();
   const { toast } = useToast();
   const [invitationStatuses, setInvitationStatuses] = useState<{[key: string]: string}>({});
   const [isLoading, setIsLoading] = useState(false);
-  const [invitingUsers, setInvitingUsers] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    console.log('=== MODAL STATE CHANGE ===');
-    console.log('Modal isOpen:', isOpen);
-    console.log('Shortlist ID:', shortlistId);
-    console.log('Connections:', connections);
-    console.log('Connections length:', connections?.length);
-
-    if (!isOpen) {
-      console.log('Modal is closed, not fetching');
-      return;
-    }
-
-    if (!shortlistId) {
-      console.log('No shortlist ID, not fetching');
-      return;
-    }
-
-    console.log('Modal is open and we have shortlist ID, proceeding...');
-
-    const fetchStatuses = async () => {
-      console.log('=== STARTING fetchStatuses ===');
+    const fetchInvitationStatuses = async () => {
+      if (!isOpen || !connections.length) return;
       
-      try {
-        // First, fetch all invitations for this shortlist
-        const { data: invitations, error } = await supabase
-          .from('shortlist_invitations')
-          .select('invitee_id, status')
-          .eq('shortlist_id', shortlistId);
-
-        if (error) {
-          console.error('Error fetching invitations:', error);
-          return;
-        }
-
-        console.log('Fetched invitations:', invitations);
-
-        // Create status map for all connections
-        const statusMap: {[key: string]: string} = {};
-        
-        // Initialize all connections as not_invited
-        connections.forEach(connection => {
-          statusMap[connection.id] = 'not_invited';
-        });
-
-        // Update with actual invitation statuses
-        if (invitations && invitations.length > 0) {
-          invitations.forEach(invitation => {
-            statusMap[invitation.invitee_id] = invitation.status;
-          });
-        }
-
-        console.log('Final status map:', statusMap);
-        setInvitationStatuses(statusMap);
-        
-      } catch (error) {
-        console.error('Error in fetchStatuses:', error);
+      const statuses: {[key: string]: string} = {};
+      for (const connection of connections) {
+        const status = await checkInvitationStatus(shortlistId, connection.id);
+        statuses[connection.id] = status;
       }
+      setInvitationStatuses(statuses);
     };
 
-    // Always fetch statuses when modal opens, regardless of connections
-    fetchStatuses();
-    
-  }, [isOpen, shortlistId, connections]);
+    fetchInvitationStatuses();
+  }, [isOpen, connections, shortlistId, checkInvitationStatus]);
 
   const handleInviteUser = async (connectionId: string) => {
     setIsLoading(true);
-    setInvitingUsers(prev => new Set([...prev, connectionId]));
-    
     try {
       await inviteToShortlist(shortlistId, connectionId);
-      
-      // Immediately update to pending
+      // Update local status to show as invited
       setInvitationStatuses(prev => ({
         ...prev,
         [connectionId]: 'pending'
       }));
-      
-      toast({
-        title: "Invitation sent!",
-        description: "Your invitation has been sent successfully",
-      });
-      
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error inviting user:', error);
-      
-      if (error?.code === '23505' || error?.message?.includes('already exists')) {
-        setInvitationStatuses(prev => ({
-          ...prev,
-          [connectionId]: 'pending'
-        }));
-        toast({
-          title: "Already invited",
-          description: "This user has already been invited to this shortlist",
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Error",
-          description: "Failed to send invitation",
-          variant: "destructive",
-        });
-      }
     } finally {
       setIsLoading(false);
-      setInvitingUsers(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(connectionId);
-        return newSet;
-      });
     }
   };
 
@@ -150,38 +68,27 @@ const ShortlistInviteModal: React.FC<ShortlistInviteModalProps> = ({
     });
   };
 
-  const getButtonForConnection = (connection: any) => {
-    const status = invitationStatuses[connection.id];
-    const isCurrentlyInviting = invitingUsers.has(connection.id);
-    
-    console.log(`Button for ${connection.name}: status=${status}, inviting=${isCurrentlyInviting}`);
-    
-    if (isCurrentlyInviting) {
-      return (
-        <Button size="sm" disabled className="bg-gray-100 text-gray-600 border border-gray-300">
-          Sending...
-        </Button>
-      );
-    }
+  const getButtonContent = (connectionId: string) => {
+    const status = invitationStatuses[connectionId];
     
     switch (status) {
       case 'pending':
         return (
-          <Button size="sm" disabled className="bg-yellow-100 text-yellow-800 border border-yellow-300">
+          <Button size="sm" disabled className="bg-yellow-100 text-yellow-800">
             <Check className="h-4 w-4 mr-1" />
             Invited
           </Button>
         );
       case 'accepted':
         return (
-          <Button size="sm" disabled className="bg-green-100 text-green-800 border border-green-300">
+          <Button size="sm" disabled className="bg-green-100 text-green-800">
             <Check className="h-4 w-4 mr-1" />
             Joined
           </Button>
         );
       case 'rejected':
         return (
-          <Button size="sm" disabled className="bg-red-100 text-red-800 border border-red-300">
+          <Button size="sm" disabled className="bg-red-100 text-red-800">
             Declined
           </Button>
         );
@@ -189,9 +96,8 @@ const ShortlistInviteModal: React.FC<ShortlistInviteModalProps> = ({
         return (
           <Button
             size="sm"
-            onClick={() => handleInviteUser(connection.id)}
+            onClick={() => handleInviteUser(connectionId)}
             disabled={isLoading}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
           >
             <UserPlus className="h-4 w-4 mr-1" />
             Invite
@@ -235,7 +141,7 @@ const ShortlistInviteModal: React.FC<ShortlistInviteModalProps> = ({
                       <p className="font-medium">{connection.name}</p>
                       <p className="text-sm text-gray-600">{connection.location}</p>
                     </div>
-                    {getButtonForConnection(connection)}
+                    {getButtonContent(connection.id)}
                   </div>
                 ))}
               </div>

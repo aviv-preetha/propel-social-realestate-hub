@@ -119,9 +119,6 @@ export function useShortlists() {
     if (!profile?.id) return;
 
     try {
-      console.log('Fetching invitations for user:', profile.id);
-      
-      // First get the raw invitation data
       const { data: invitationData, error } = await supabase
         .from('shortlist_invitations')
         .select('*')
@@ -129,60 +126,37 @@ export function useShortlists() {
         .eq('status', 'pending')
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching invitations:', error);
-        throw error;
-      }
-
-      console.log('Raw invitation data:', invitationData);
+      if (error) throw error;
 
       if (!invitationData || invitationData.length === 0) {
         setInvitations([]);
         return;
       }
 
-      // Get unique shortlist and inviter IDs
-      const shortlistIds = [...new Set(invitationData.map(inv => inv.shortlist_id))];
-      const inviterIds = [...new Set(invitationData.map(inv => inv.inviter_id))];
+      // Fetch shortlist and inviter details
+      const shortlistIds = invitationData.map(inv => inv.shortlist_id);
+      const inviterIds = invitationData.map(inv => inv.inviter_id);
 
-      // Fetch shortlist details
-      const { data: shortlistsData, error: shortlistError } = await supabase
-        .from('shortlists')
-        .select('*')
-        .in('id', shortlistIds);
+      const [shortlistResult, profileResult] = await Promise.all([
+        supabase.from('shortlists').select('*').in('id', shortlistIds),
+        supabase.from('profiles').select('id, name').in('id', inviterIds)
+      ]);
 
-      if (shortlistError) {
-        console.error('Error fetching shortlists:', shortlistError);
-      }
-
-      // Fetch inviter details
-      const { data: profilesData, error: profileError } = await supabase
-        .from('profiles')
-        .select('id, name')
-        .in('id', inviterIds);
-
-      if (profileError) {
-        console.error('Error fetching profiles:', profileError);
-      }
-
-      // Combine the data
       const formattedInvitations = invitationData.map(inv => {
-        const shortlist = shortlistsData?.find(s => s.id === inv.shortlist_id);
-        const inviter = profilesData?.find(p => p.id === inv.inviter_id);
+        const shortlist = shortlistResult.data?.find(s => s.id === inv.shortlist_id);
+        const inviter = profileResult.data?.find(p => p.id === inv.inviter_id);
         
         return {
           ...inv,
           status: inv.status as 'pending' | 'accepted' | 'rejected',
           shortlist,
-          inviter_name: inviter?.name || 'Unknown User'
+          inviter_name: inviter?.name
         };
       });
 
-      console.log('Formatted invitations:', formattedInvitations);
       setInvitations(formattedInvitations);
     } catch (error) {
       console.error('Error fetching invitations:', error);
-      setInvitations([]);
     }
   };
 
@@ -301,64 +275,27 @@ export function useShortlists() {
     }
 
     try {
-      console.log('Sending invitation from', profile.id, 'to', inviteeId, 'for shortlist', shortlistId);
-      
-      // Check if invitation already exists
-      const { data: existingInvitation, error: checkError } = await supabase
+      const { error } = await supabase
         .from('shortlist_invitations')
-        .select('id, status')
-        .eq('shortlist_id', shortlistId)
-        .eq('invitee_id', inviteeId)
-        .maybeSingle();
+        .insert({
+          shortlist_id: shortlistId,
+          inviter_id: profile.id,
+          invitee_id: inviteeId
+        });
 
-      if (checkError) {
-        console.error('Error checking existing invitations:', checkError);
-        throw checkError;
-      }
+      if (error) throw error;
 
-      if (existingInvitation) {
-        console.log('Invitation already exists:', existingInvitation);
-        if (existingInvitation.status === 'pending') {
-          // Already has a pending invitation, don't throw error
-          console.log('Invitation already pending');
-          return;
-        } else if (existingInvitation.status === 'rejected') {
-          // Update existing rejected invitation to pending
-          const { error: updateError } = await supabase
-            .from('shortlist_invitations')
-            .update({ 
-              status: 'pending', 
-              updated_at: new Date().toISOString(),
-              inviter_id: profile.id 
-            })
-            .eq('id', existingInvitation.id);
-
-          if (updateError) throw updateError;
-          console.log('Updated rejected invitation to pending');
-        } else {
-          // Already accepted, don't send again
-          console.log('Invitation already accepted');
-          return;
-        }
-      } else {
-        // Create new invitation
-        const { error } = await supabase
-          .from('shortlist_invitations')
-          .insert({
-            shortlist_id: shortlistId,
-            inviter_id: profile.id,
-            invitee_id: inviteeId,
-            status: 'pending'
-          });
-
-        if (error) throw error;
-        console.log('New invitation created');
-      }
-
-      console.log('Invitation sent successfully');
+      toast({
+        title: "Invitation sent!",
+        description: "Your invitation has been sent",
+      });
     } catch (error) {
       console.error('Error sending invitation:', error);
-      throw error; // Re-throw to let the component handle it
+      toast({
+        title: "Error",
+        description: "Failed to send invitation",
+        variant: "destructive",
+      });
     }
   };
 
@@ -369,12 +306,7 @@ export function useShortlists() {
         p_user_id: userId
       });
 
-      if (error) {
-        console.error('Error checking invitation status:', error);
-        throw error;
-      }
-      
-      console.log('Invitation status for user', userId, 'shortlist', shortlistId, ':', data);
+      if (error) throw error;
       return data;
     } catch (error) {
       console.error('Error checking invitation status:', error);
@@ -384,8 +316,6 @@ export function useShortlists() {
 
   const respondToInvitation = async (invitationId: string, accept: boolean) => {
     try {
-      console.log('Responding to invitation:', invitationId, 'accept:', accept);
-      
       if (accept) {
         const { data, error } = await supabase.rpc('accept_shortlist_invitation', {
           invitation_id: invitationId
