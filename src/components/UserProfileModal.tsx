@@ -5,9 +5,9 @@ import { Button } from '@/components/ui/button';
 import { UserPlus, Users, MessageCircle, Star, Check, Clock, MapPin } from 'lucide-react';
 import UserBadge from './UserBadge';
 import StarRating from './StarRating';
+import UserPosts from './UserPosts';
 import { useConnections } from '@/hooks/useConnections';
 import { useBusinessRatings } from '@/hooks/useBusinessRatings';
-import { usePosts } from '@/hooks/usePosts';
 import { useProfile } from '@/hooks/useProfile';
 
 interface UserProfileModalProps {
@@ -27,8 +27,8 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onClose, us
     getPendingConnectionId 
   } = useConnections();
   const { getRatingStats } = useBusinessRatings();
-  const { posts } = usePosts();
   const [mutualConnections, setMutualConnections] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState<'overview' | 'posts'>('overview');
 
   useEffect(() => {
     if (isOpen && profile && user) {
@@ -56,8 +56,6 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onClose, us
     );
   }
 
-  // Filter posts by the user
-  const userPosts = posts.filter(post => post.userId === user.id);
   const ratingStats = user.badge === 'business' ? getRatingStats(user.id) : null;
 
   const renderConnectionButton = () => {
@@ -183,36 +181,42 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onClose, us
             </div>
           )}
 
-          {/* User Posts */}
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">All Posts ({userPosts.length})</h3>
-            {userPosts.length > 0 ? (
-              <div className="space-y-4">
-                {userPosts.map((post) => (
-                  <div key={post.id} className="border rounded-lg p-4">
-                    <p className="text-gray-800 mb-2">{post.content}</p>
-                    {post.images && post.images.length > 0 && (
-                      <div className="grid grid-cols-2 gap-2 mb-2">
-                        {post.images.slice(0, 2).map((image, index) => (
-                          <img
-                            key={index}
-                            src={image}
-                            alt={`Post image ${index + 1}`}
-                            className="w-full h-32 object-cover rounded"
-                          />
-                        ))}
-                      </div>
-                    )}
-                    <p className="text-xs text-gray-500">
-                      {post.timestamp.toLocaleDateString()}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-gray-500 text-center py-8">No posts yet</p>
-            )}
+          {/* Tabs */}
+          <div className="border-b border-gray-200">
+            <nav className="-mb-px flex space-x-8">
+              <button
+                onClick={() => setActiveTab('overview')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === 'overview'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                Overview
+              </button>
+              <button
+                onClick={() => setActiveTab('posts')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === 'posts'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                Posts
+              </button>
+            </nav>
           </div>
+
+          {/* Tab Content */}
+          {activeTab === 'overview' && (
+            <div className="text-center py-8">
+              <p className="text-gray-500">Overview content will be added here</p>
+            </div>
+          )}
+
+          {activeTab === 'posts' && (
+            <UserPosts userId={user.id} />
+          )}
         </div>
       </DialogContent>
     </Dialog>
