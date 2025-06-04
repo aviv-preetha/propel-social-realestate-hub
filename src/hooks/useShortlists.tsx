@@ -299,6 +299,21 @@ export function useShortlists() {
     }
   };
 
+  const checkInvitationStatus = async (shortlistId: string, userId: string) => {
+    try {
+      const { data, error } = await supabase.rpc('get_invitation_status', {
+        p_shortlist_id: shortlistId,
+        p_user_id: userId
+      });
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error checking invitation status:', error);
+      return 'not_invited';
+    }
+  };
+
   const respondToInvitation = async (invitationId: string, accept: boolean) => {
     try {
       if (accept) {
@@ -386,6 +401,7 @@ export function useShortlists() {
     inviteToShortlist,
     respondToInvitation,
     updateShortlistSharing,
+    checkInvitationStatus,
     refetch: () => Promise.all([fetchShortlists(), fetchInvitations()])
   };
 }

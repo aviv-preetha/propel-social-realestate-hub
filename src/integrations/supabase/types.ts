@@ -397,6 +397,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          invitation_status: string | null
           invitee_id: string
           inviter_id: string
           shortlist_id: string
@@ -406,6 +407,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          invitation_status?: string | null
           invitee_id: string
           inviter_id: string
           shortlist_id: string
@@ -415,6 +417,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          invitation_status?: string | null
           invitee_id?: string
           inviter_id?: string
           shortlist_id?: string
@@ -548,6 +551,10 @@ export type Database = {
       accept_shortlist_invitation: {
         Args: { invitation_id: string }
         Returns: boolean
+      }
+      get_invitation_status: {
+        Args: { p_shortlist_id: string; p_user_id: string }
+        Returns: string
       }
     }
     Enums: {

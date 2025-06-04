@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Users, Share2, Copy, UserPlus, Eye, Heart, X } from 'lucide-react';
+import { Plus, Users, Eye, Heart, X } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
@@ -10,22 +10,22 @@ import { useConnections } from '@/hooks/useConnections';
 import { useProperties } from '@/hooks/useProperties';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import ShortlistInviteModal from './ShortlistInviteModal';
 
 const ShortlistsManager: React.FC = () => {
-  const { shortlists, invitations, createShortlist, inviteToShortlist, respondToInvitation, updateShortlistSharing, refetch } = useShortlists();
+  const { shortlists, invitations, createShortlist, respondToInvitation, updateShortlistSharing, refetch } = useShortlists();
   const { connections } = useConnections();
   const { properties } = useProperties();
   const { toast } = useToast();
   
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
-  const [selectedShortlistId, setSelectedShortlistId] = useState<string>('');
+  const [selectedShortlist, setSelectedShortlist] = useState<{id: string, name: string, shareToken: string} | null>(null);
   const [newShortlistName, setNewShortlistName] = useState('');
   const [newShortlistDescription, setNewShortlistDescription] = useState('');
   const [viewingShortlistId, setViewingShortlistId] = useState<string | null>(null);
   const [shortlistProperties, setShortlistProperties] = useState<{[key: string]: any[]}>({});
 
-  // Fetch properties for each shortlist
   useEffect(() => {
     const fetchShortlistProperties = async () => {
       const propertiesData: {[key: string]: any[]} = {};
@@ -85,24 +85,18 @@ const ShortlistsManager: React.FC = () => {
     setShowCreateModal(false);
   };
 
-  const handleInviteUser = async (connectionId: string) => {
-    if (!selectedShortlistId) return;
+  const handleShareClick = (shortlist: any) => {
+    if (!shortlist.is_shared) {
+      // Enable sharing first
+      updateShortlistSharing(shortlist.id, true);
+    }
     
-    await inviteToShortlist(selectedShortlistId, connectionId);
-    setShowInviteModal(false);
-  };
-
-  const copyShareLink = (shareToken: string) => {
-    const shareUrl = `${window.location.origin}/shortlist/shared/${shareToken}`;
-    navigator.clipboard.writeText(shareUrl);
-    toast({
-      title: "Link copied!",
-      description: "Share link has been copied to clipboard",
+    setSelectedShortlist({
+      id: shortlist.id,
+      name: shortlist.name,
+      shareToken: shortlist.share_token
     });
-  };
-
-  const toggleSharing = async (shortlistId: string, currentSharing: boolean) => {
-    await updateShortlistSharing(shortlistId, !currentSharing);
+    setShowInviteModal(true);
   };
 
   const removePropertyFromShortlist = async (shortlistId: string, propertyId: string) => {
@@ -145,6 +139,15 @@ const ShortlistsManager: React.FC = () => {
       return `€${(price / 1000).toFixed(0)}K`;
     }
     return `€${price}`;
+  };
+
+  const isUserOwner = (shortlist: any, userId: string) => {
+    return shortlist.user_id === userId;
+  };
+
+  const canViewProperties = (shortlist: any, userId: string) => {
+    // User can view properties if they are the owner or if they are a member (accepted invitation)
+    return isUserOwner(shortlist, userId) || shortlist.user_id !== userId;
   };
 
   return (
@@ -262,39 +265,12 @@ const ShortlistsManager: React.FC = () => {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => toggleSharing(shortlist.id, shortlist.is_shared)}
+                onClick={() => handleShareClick(shortlist)}
                 className="w-full"
               >
-                <Share2 className="h-4 w-4 mr-2" />
-                {shortlist.is_shared ? 'Disable Sharing' : 'Enable Sharing'}
+                <Users className="h-4 w-4 mr-2" />
+                Share
               </Button>
-              
-              {shortlist.is_shared && (
-                <>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => copyShareLink(shortlist.share_token)}
-                    className="w-full"
-                  >
-                    <Copy className="h-4 w-4 mr-2" />
-                    Copy Share Link
-                  </Button>
-                  
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setSelectedShortlistId(shortlist.id);
-                      setShowInviteModal(true);
-                    }}
-                    className="w-full"
-                  >
-                    <UserPlus className="h-4 w-4 mr-2" />
-                    Invite Connections
-                  </Button>
-                </>
-              )}
             </div>
 
             {/* Properties List */}
@@ -328,40 +304,18 @@ const ShortlistsManager: React.FC = () => {
       </div>
 
       {/* Invite Modal */}
-      <Dialog open={showInviteModal} onOpenChange={setShowInviteModal}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Invite Connections</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            {connections.length > 0 ? (
-              <div className="space-y-2 max-h-64 overflow-y-auto">
-                {connections.map((connection) => (
-                  <div
-                    key={connection.id}
-                    className="flex items-center justify-between p-3 border rounded-lg"
-                  >
-                    <div>
-                      <p className="font-medium">{connection.name}</p>
-                      <p className="text-sm text-gray-600">{connection.location}</p>
-                    </div>
-                    <Button
-                      size="sm"
-                      onClick={() => handleInviteUser(connection.id)}
-                    >
-                      Invite
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-gray-500 text-center py-4">
-                No connections available to invite
-              </p>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
+      {selectedShortlist && (
+        <ShortlistInviteModal
+          isOpen={showInviteModal}
+          onClose={() => {
+            setShowInviteModal(false);
+            setSelectedShortlist(null);
+          }}
+          shortlistId={selectedShortlist.id}
+          shortlistName={selectedShortlist.name}
+          shareToken={selectedShortlist.shareToken}
+        />
+      )}
     </div>
   );
 };
