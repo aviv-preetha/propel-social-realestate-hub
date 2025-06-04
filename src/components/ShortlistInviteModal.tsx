@@ -6,6 +6,7 @@ import { Button } from './ui/button';
 import { useConnections } from '@/hooks/useConnections';
 import { useShortlists } from '@/hooks/useShortlists';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ShortlistInviteModalProps {
   isOpen: boolean;
@@ -23,47 +24,65 @@ const ShortlistInviteModal: React.FC<ShortlistInviteModalProps> = ({
   shareToken
 }) => {
   const { connections } = useConnections();
-  const { inviteToShortlist, checkInvitationStatus } = useShortlists();
+  const { inviteToShortlist } = useShortlists();
   const { toast } = useToast();
   const [invitationStatuses, setInvitationStatuses] = useState<{[key: string]: string}>({});
   const [isLoading, setIsLoading] = useState(false);
   const [invitingUsers, setInvitingUsers] = useState<Set<string>>(new Set());
 
-  useEffect(() => {
-    const fetchInvitationStatuses = async () => {
-      console.log("connections.length", connections.length);
-      if (!isOpen || !connections.length) {
-        setInvitationStatuses({});
+  const fetchInvitationStatuses = async () => {
+    if (!isOpen || !connections.length || !shortlistId) {
+      setInvitationStatuses({});
+      return;
+    }
+    
+    console.log('Fetching invitation statuses for shortlist:', shortlistId);
+    console.log('Connections:', connections);
+    
+    try {
+      // Get all invitations for this shortlist
+      const { data: invitations, error } = await supabase
+        .from('shortlist_invitations')
+        .select('invitee_id, status')
+        .eq('shortlist_id', shortlistId);
+
+      if (error) {
+        console.error('Error fetching invitations:', error);
         return;
       }
-      
-      console.log('Fetching invitation statuses for shortlist:', shortlistId);
+
+      console.log('Raw invitations from DB:', invitations);
+
+      // Create status map
       const statuses: {[key: string]: string} = {};
       
-      // Reset statuses first
-      setInvitationStatuses({});
+      // Initialize all connections as not_invited
+      connections.forEach(connection => {
+        statuses[connection.id] = 'not_invited';
+      });
 
-      console.log("*connections", connections);
-      for (const connection of connections) {
-        try {
-          const status = await checkInvitationStatus(shortlistId, connection.id);
-          statuses[connection.id] = status;
-          console.log(`Status for ${connection.name} (${connection.id}):`, status);
-        } catch (error) {
-          console.error('Error checking invitation status:', error);
-          statuses[connection.id] = 'not_invited';
-        }
+      // Update with actual invitation statuses
+      if (invitations) {
+        invitations.forEach(invitation => {
+          statuses[invitation.invitee_id] = invitation.status;
+        });
       }
-      
+
       console.log('Final statuses:', statuses);
       setInvitationStatuses(statuses);
-    };
+    } catch (error) {
+      console.error('Error in fetchInvitationStatuses:', error);
+    }
+  };
 
-    // Always fetch when modal opens or shortlist changes
+  useEffect(() => {
     if (isOpen) {
+      // Reset statuses first
+      setInvitationStatuses({});
+      // Then fetch fresh statuses
       fetchInvitationStatuses();
     }
-  }, [isOpen, shortlistId, connections, checkInvitationStatus]);
+  }, [isOpen, shortlistId, connections]);
 
   const handleInviteUser = async (connectionId: string) => {
     setIsLoading(true);
@@ -83,18 +102,9 @@ const ShortlistInviteModal: React.FC<ShortlistInviteModalProps> = ({
         description: "Your invitation has been sent successfully",
       });
 
-      // Double-check the status after a short delay to ensure DB consistency
-      setTimeout(async () => {
-        try {
-          const actualStatus = await checkInvitationStatus(shortlistId, connectionId);
-          console.log(`Verified status for ${connectionId}:`, actualStatus);
-          setInvitationStatuses(prev => ({
-            ...prev,
-            [connectionId]: actualStatus
-          }));
-        } catch (error) {
-          console.error('Error verifying invitation status:', error);
-        }
+      // Refresh statuses after a short delay to ensure DB consistency
+      setTimeout(() => {
+        fetchInvitationStatuses();
       }, 1000);
       
     } catch (error: any) {
