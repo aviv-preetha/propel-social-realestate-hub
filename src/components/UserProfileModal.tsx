@@ -30,15 +30,6 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onClose, us
   const { posts } = usePosts();
   const [mutualConnections, setMutualConnections] = useState<any[]>([]);
 
-  // Early return if user is not provided
-  if (!user) {
-    return null;
-  }
-
-  // Filter posts by the user
-  const userPosts = posts.filter(post => post.userId === user.id);
-  const ratingStats = user.badge === 'business' ? getRatingStats(user.id) : null;
-
   useEffect(() => {
     if (isOpen && profile && user) {
       // Find mutual connections
@@ -47,7 +38,27 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onClose, us
       );
       setMutualConnections(mutual.slice(0, 3)); // Show max 3 mutual connections
     }
-  }, [isOpen, connections, user.id, profile]);
+  }, [isOpen, connections, user?.id, profile]);
+
+  // Handle the case where user is not provided
+  if (!user) {
+    return (
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-left">User Profile</DialogTitle>
+          </DialogHeader>
+          <div className="p-4 text-center">
+            <p className="text-gray-500">No user data available</p>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  // Filter posts by the user
+  const userPosts = posts.filter(post => post.userId === user.id);
+  const ratingStats = user.badge === 'business' ? getRatingStats(user.id) : null;
 
   const renderConnectionButton = () => {
     const status = getConnectionStatus(user.id);
@@ -136,12 +147,6 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onClose, us
               
               {user.description && (
                 <p className="text-gray-700 mb-3">{user.description}</p>
-              )}
-              
-              {user.listing_preference && (
-                <p className="text-blue-600 text-sm font-medium mb-3">
-                  Preference: {user.listing_preference}
-                </p>
               )}
               
               <div className="flex space-x-2">
