@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Edit, MapPin, Heart, Star, Building, Camera, MessageSquare, FileText } from 'lucide-react';
 import { useProfile } from '@/hooks/useProfile';
@@ -5,6 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useConnections } from '@/hooks/useConnections';
 import { useProperties } from '@/hooks/useProperties';
 import { useBusinessRatings } from '@/hooks/useBusinessRatings';
+import { usePosts } from '@/hooks/usePosts';
 import AvatarWithBadge from './AvatarWithBadge';
 import UserBadge from './UserBadge';
 import StarRating from './StarRating';
@@ -47,6 +49,7 @@ const Profile: React.FC = () => {
   const { connections } = useConnections();
   const { properties, shortlistedProperties } = useProperties();
   const { fetchBusinessRatings, getRatingStats } = useBusinessRatings();
+  const { posts } = usePosts();
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [activeSection, setActiveSection] = useState<'reviews' | 'connections' | 'properties' | 'shortlisted' | 'posts' | null>(null);
@@ -146,6 +149,9 @@ const Profile: React.FC = () => {
 
   // Count properties owned by this user
   const userPropertiesCount = properties.filter(property => property.owner_id === profile.id).length;
+
+  // Count posts by this user
+  const userPostsCount = posts.filter(post => post.userId === profile.id).length;
 
   // Parse listing preferences for seeker users
   const listingPreferences = isSeeker ? parseListingPreference(profile.listing_preference) : null;
@@ -276,12 +282,12 @@ const Profile: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         {(isOwner || isBusiness) && (
           <div 
-            className={`bg-white rounded-xl shadow-sm border p-6 text-center cursor-pointer transition-all duration-200 ${
+            className={`bg-white rounded-xl shadow-sm border p-6 text-left cursor-pointer transition-all duration-200 ${
               activeSection === 'properties' ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:shadow-md'
             }`}
             onClick={() => handleSectionToggle('properties')}
           >
-            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-3">
               <Building className="h-6 w-6 text-blue-600" />
             </div>
             <h3 className="text-2xl font-bold text-gray-900">{userPropertiesCount}</h3>
@@ -291,12 +297,12 @@ const Profile: React.FC = () => {
         
         {isSeeker && (
           <div 
-            className={`bg-white rounded-xl shadow-sm border p-6 text-center cursor-pointer transition-all duration-200 ${
+            className={`bg-white rounded-xl shadow-sm border p-6 text-left cursor-pointer transition-all duration-200 ${
               activeSection === 'shortlisted' ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:shadow-md'
             }`}
             onClick={() => handleSectionToggle('shortlisted')}
           >
-            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-3">
               <Heart className="h-6 w-6 text-green-600" />
             </div>
             <h3 className="text-2xl font-bold text-gray-900">{shortlistedProperties.length}</h3>
@@ -306,12 +312,12 @@ const Profile: React.FC = () => {
 
         {isBusiness && (
           <div 
-            className={`bg-white rounded-xl shadow-sm border p-6 text-center cursor-pointer transition-all duration-200 ${
+            className={`bg-white rounded-xl shadow-sm border p-6 text-left cursor-pointer transition-all duration-200 ${
               activeSection === 'reviews' ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:shadow-md'
             }`}
             onClick={() => handleSectionToggle('reviews')}
           >
-            <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-3">
+            <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center mb-3">
               <Star className="h-6 w-6 text-yellow-600" />
             </div>
             <h3 className="text-2xl font-bold text-gray-900">
@@ -322,12 +328,12 @@ const Profile: React.FC = () => {
         )}
         
         <div 
-          className={`bg-white rounded-xl shadow-sm border p-6 text-center cursor-pointer transition-all duration-200 ${
+          className={`bg-white rounded-xl shadow-sm border p-6 text-left cursor-pointer transition-all duration-200 ${
             activeSection === 'connections' ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:shadow-md'
           }`}
           onClick={() => handleSectionToggle('connections')}
         >
-          <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
+          <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mb-3">
             <MessageSquare className="h-6 w-6 text-purple-600" />
           </div>
           <h3 className="text-2xl font-bold text-gray-900">{connections.length}</h3>
@@ -335,16 +341,16 @@ const Profile: React.FC = () => {
         </div>
 
         <div 
-          className={`bg-white rounded-xl shadow-sm border p-6 text-center cursor-pointer transition-all duration-200 ${
+          className={`bg-white rounded-xl shadow-sm border p-6 text-left cursor-pointer transition-all duration-200 ${
             activeSection === 'posts' ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:shadow-md'
           }`}
           onClick={() => handleSectionToggle('posts')}
         >
-          <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-3">
+          <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mb-3">
             <FileText className="h-6 w-6 text-orange-600" />
           </div>
-          <h3 className="text-2xl font-bold text-gray-900">Posts</h3>
-          <p className="text-gray-600">My Posts</p>
+          <h3 className="text-2xl font-bold text-gray-900">{userPostsCount}</h3>
+          <p className="text-gray-600">Posts</p>
         </div>
       </div>
 
