@@ -24,7 +24,7 @@ export function useProfileData(userId: string) {
       const { data, error } = await supabase
         .from('profiles')
         .select('id, name, avatar_url, badge')
-        .eq('user_id', userId)
+        .eq('id', userId)
         .single();
 
       if (error && error.code !== 'PGRST116') {
