@@ -198,18 +198,26 @@ const Profile: React.FC = () => {
                         <div>
                           <span className="text-blue-700 font-medium">Type: </span>
                           <span className="text-blue-600">
-                            {listingPreferences.types.map(type => type === 'rent' ? 'For Rent' : 'For Sale').join(', ')}
+                            {listingPreferences.types.map(type => type === 'rent' ? 'Rent' : 'Buy').join(', ')}
                           </span>
                         </div>
                       )}
-                      <div>
-                        <span className="text-blue-700 font-medium">Size: </span>
-                        <span className="text-blue-600">{listingPreferences.minSize} - {listingPreferences.maxSize} m²</span>
-                      </div>
-                      <div>
-                        <span className="text-blue-700 font-medium">Price: </span>
-                        <span className="text-blue-600">{formatPrice(listingPreferences.minPrice)} - {formatPrice(listingPreferences.maxPrice)}</span>
-                      </div>
+                      {(listingPreferences.minSize > 0 || listingPreferences.maxSize > 0) && (
+                        <div>
+                          <span className="text-blue-700 font-medium">Size: </span>
+                          <span className="text-blue-600">
+                            {listingPreferences.minSize > 0 ? listingPreferences.minSize : '0'} - {listingPreferences.maxSize > 0 ? listingPreferences.maxSize : '∞'} m²
+                          </span>
+                        </div>
+                      )}
+                      {(listingPreferences.minPrice > 0 || listingPreferences.maxPrice > 0) && (
+                        <div>
+                          <span className="text-blue-700 font-medium">Price: </span>
+                          <span className="text-blue-600">
+                            {listingPreferences.minPrice > 0 ? formatPrice(listingPreferences.minPrice) : '€0'} - {listingPreferences.maxPrice > 0 ? formatPrice(listingPreferences.maxPrice) : '∞'}
+                          </span>
+                        </div>
+                      )}
                       {listingPreferences.location && (
                         <div>
                           <span className="text-blue-700 font-medium">Location: </span>

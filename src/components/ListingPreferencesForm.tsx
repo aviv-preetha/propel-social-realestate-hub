@@ -29,7 +29,7 @@ const ListingPreferencesForm: React.FC<ListingPreferencesFormProps> = ({
   };
 
   const handleMinSizeChange = (value: string) => {
-    const numValue = parseInt(value) || 0;
+    const numValue = value === '' ? 0 : parseInt(value) || 0;
     onChange({
       ...preferences,
       minSize: numValue
@@ -37,7 +37,7 @@ const ListingPreferencesForm: React.FC<ListingPreferencesFormProps> = ({
   };
 
   const handleMaxSizeChange = (value: string) => {
-    const numValue = parseInt(value) || 0;
+    const numValue = value === '' ? 0 : parseInt(value) || 0;
     onChange({
       ...preferences,
       maxSize: numValue
@@ -45,7 +45,7 @@ const ListingPreferencesForm: React.FC<ListingPreferencesFormProps> = ({
   };
 
   const handleMinPriceChange = (value: string) => {
-    const numValue = parseInt(value) || 0;
+    const numValue = value === '' ? 0 : parseInt(value) || 0;
     onChange({
       ...preferences,
       minPrice: numValue
@@ -53,7 +53,7 @@ const ListingPreferencesForm: React.FC<ListingPreferencesFormProps> = ({
   };
 
   const handleMaxPriceChange = (value: string) => {
-    const numValue = parseInt(value) || 0;
+    const numValue = value === '' ? 0 : parseInt(value) || 0;
     onChange({
       ...preferences,
       maxPrice: numValue
@@ -101,7 +101,7 @@ const ListingPreferencesForm: React.FC<ListingPreferencesFormProps> = ({
             <label className="block text-xs text-gray-500 mb-1">Min Size</label>
             <Input
               type="number"
-              value={preferences.minSize}
+              value={preferences.minSize === 0 ? '' : preferences.minSize}
               onChange={(e) => handleMinSizeChange(e.target.value)}
               placeholder="Min m²"
               min="0"
@@ -111,7 +111,7 @@ const ListingPreferencesForm: React.FC<ListingPreferencesFormProps> = ({
             <label className="block text-xs text-gray-500 mb-1">Max Size</label>
             <Input
               type="number"
-              value={preferences.maxSize}
+              value={preferences.maxSize === 0 ? '' : preferences.maxSize}
               onChange={(e) => handleMaxSizeChange(e.target.value)}
               placeholder="Max m²"
               min="0"
@@ -127,7 +127,7 @@ const ListingPreferencesForm: React.FC<ListingPreferencesFormProps> = ({
             <label className="block text-xs text-gray-500 mb-1">Min Price</label>
             <Input
               type="number"
-              value={preferences.minPrice}
+              value={preferences.minPrice === 0 ? '' : preferences.minPrice}
               onChange={(e) => handleMinPriceChange(e.target.value)}
               placeholder="Min €"
               min="0"
@@ -137,7 +137,7 @@ const ListingPreferencesForm: React.FC<ListingPreferencesFormProps> = ({
             <label className="block text-xs text-gray-500 mb-1">Max Price</label>
             <Input
               type="number"
-              value={preferences.maxPrice}
+              value={preferences.maxPrice === 0 ? '' : preferences.maxPrice}
               onChange={(e) => handleMaxPriceChange(e.target.value)}
               placeholder="Max €"
               min="0"
