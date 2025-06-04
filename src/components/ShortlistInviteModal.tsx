@@ -41,7 +41,8 @@ const ShortlistInviteModal: React.FC<ShortlistInviteModalProps> = ({
       
       // Reset statuses first
       setInvitationStatuses({});
-      
+
+      console.log("connections", connections):
       for (const connection of connections) {
         try {
           const status = await checkInvitationStatus(shortlistId, connection.id);
