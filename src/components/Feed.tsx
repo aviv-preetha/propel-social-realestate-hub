@@ -222,28 +222,74 @@ const Feed: React.FC = () => {
     }));
   };
 
-  const renderTextWithMentions = (text: string) => {
-    // Updated regex to match @ followed by names (first and last name), stopping at word boundaries
+  const renderTextWithMentionsAndLinks = (text: string) => {
+    // URL regex pattern
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    // Mention regex pattern
     const mentionRegex = /@([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\b/g;
+    
     const parts = [];
     let lastIndex = 0;
-    let match;
-
-    while ((match = mentionRegex.exec(text)) !== null) {
-      // Add text before the mention
-      if (match.index > lastIndex) {
-        parts.push(text.substring(lastIndex, match.index));
+    
+    // Find all URLs and mentions with their positions
+    const matches = [];
+    
+    // Find URLs
+    let urlMatch;
+    while ((urlMatch = urlRegex.exec(text)) !== null) {
+      matches.push({
+        type: 'url',
+        start: urlMatch.index,
+        end: urlMatch.index + urlMatch[0].length,
+        content: urlMatch[0]
+      });
+    }
+    
+    // Find mentions
+    let mentionMatch;
+    while ((mentionMatch = mentionRegex.exec(text)) !== null) {
+      matches.push({
+        type: 'mention',
+        start: mentionMatch.index,
+        end: mentionMatch.index + mentionMatch[0].length,
+        content: mentionMatch[0],
+        name: mentionMatch[1]
+      });
+    }
+    
+    // Sort matches by position
+    matches.sort((a, b) => a.start - b.start);
+    
+    // Process matches in order
+    matches.forEach((match, index) => {
+      // Add text before this match
+      if (match.start > lastIndex) {
+        parts.push(text.substring(lastIndex, match.start));
       }
       
-      // Add the mention with highlighting
-      parts.push(
-        <span key={match.index} className="text-blue-600 font-medium bg-blue-50 px-1 rounded">
-          @{match[1]}
-        </span>
-      );
+      // Add the match
+      if (match.type === 'url') {
+        parts.push(
+          <a
+            key={`url-${match.start}`}
+            href={match.content}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 hover:text-blue-800 underline"
+          >
+            {match.content}
+          </a>
+        );
+      } else if (match.type === 'mention') {
+        parts.push(
+          <span key={`mention-${match.start}`} className="text-blue-600 font-medium bg-blue-50 px-1 rounded">
+            @{match.name}
+          </span>
+        );
+      }
       
-      lastIndex = match.index + match[0].length;
-    }
+      lastIndex = match.end;
+    });
     
     // Add remaining text
     if (lastIndex < text.length) {
@@ -494,7 +540,7 @@ const Feed: React.FC = () => {
                   </div>
                 </div>
               ) : (
-                <p className="text-gray-800 leading-relaxed text-left">{renderTextWithMentions(post.content)}</p>
+                <p className="text-gray-800 leading-relaxed text-left">{renderTextWithMentionsAndLinks(post.content)}</p>
               )}
             </div>
 
@@ -579,7 +625,7 @@ const Feed: React.FC = () => {
                                 {formatTimestamp(comment.timestamp)}
                               </span>
                             </div>
-                            <p className="text-sm text-gray-800 text-left">{renderTextWithMentions(comment.content)}</p>
+                            <p className="text-sm text-gray-800 text-left">{renderTextWithMentionsAndLinks(comment.content)}</p>
                           </div>
                         </div>
                       </div>

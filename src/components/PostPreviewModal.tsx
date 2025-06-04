@@ -81,6 +81,83 @@ const PostPreviewModal: React.FC<PostPreviewModalProps> = ({
     }
   };
 
+  const renderTextWithMentionsAndLinks = (text: string) => {
+    // URL regex pattern
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    // Mention regex pattern
+    const mentionRegex = /@([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\b/g;
+    
+    const parts = [];
+    let lastIndex = 0;
+    
+    // Find all URLs and mentions with their positions
+    const matches = [];
+    
+    // Find URLs
+    let urlMatch;
+    while ((urlMatch = urlRegex.exec(text)) !== null) {
+      matches.push({
+        type: 'url',
+        start: urlMatch.index,
+        end: urlMatch.index + urlMatch[0].length,
+        content: urlMatch[0]
+      });
+    }
+    
+    // Find mentions
+    let mentionMatch;
+    while ((mentionMatch = mentionRegex.exec(text)) !== null) {
+      matches.push({
+        type: 'mention',
+        start: mentionMatch.index,
+        end: mentionMatch.index + mentionMatch[0].length,
+        content: mentionMatch[0],
+        name: mentionMatch[1]
+      });
+    }
+    
+    // Sort matches by position
+    matches.sort((a, b) => a.start - b.start);
+    
+    // Process matches in order
+    matches.forEach((match, index) => {
+      // Add text before this match
+      if (match.start > lastIndex) {
+        parts.push(text.substring(lastIndex, match.start));
+      }
+      
+      // Add the match
+      if (match.type === 'url') {
+        parts.push(
+          <a
+            key={`url-${match.start}`}
+            href={match.content}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 hover:text-blue-800 underline"
+          >
+            {match.content}
+          </a>
+        );
+      } else if (match.type === 'mention') {
+        parts.push(
+          <span key={`mention-${match.start}`} className="text-blue-600 font-medium bg-blue-50 px-1 rounded">
+            @{match.name}
+          </span>
+        );
+      }
+      
+      lastIndex = match.end;
+    });
+    
+    // Add remaining text
+    if (lastIndex < text.length) {
+      parts.push(text.substring(lastIndex));
+    }
+    
+    return parts.length > 0 ? parts : text;
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl">
@@ -110,7 +187,7 @@ const PostPreviewModal: React.FC<PostPreviewModalProps> = ({
 
             {/* Post Content */}
             <div className="text-gray-900">
-              <p className="whitespace-pre-wrap">{post.content}</p>
+              <p className="whitespace-pre-wrap">{renderTextWithMentionsAndLinks(post.content)}</p>
             </div>
 
             {/* Post Images */}
