@@ -18,7 +18,7 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
   onPostClick,
 }) => {
   const { profile } = useProfileData(notification.related_user_id);
-
+  console.log('profile - ',profile);
   const getNotificationIcon = () => {
     switch (notification.type) {
       case 'like':
