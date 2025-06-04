@@ -70,7 +70,9 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
         <div className="flex items-center space-x-3">
           {postAuthor && (
             <AvatarWithBadge
-              user={postAuthor}
+              src={postAuthor.avatar_url || '/placeholder.svg'}
+              alt={postAuthor.name}
+              badge={postAuthor.badge}
               size="md"
             />
           )}
@@ -206,7 +208,9 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
               <div key={comment.id} className="flex space-x-3">
                 {commentAuthor && (
                   <AvatarWithBadge
-                    user={commentAuthor}
+                    src={commentAuthor.avatar_url || '/placeholder.svg'}
+                    alt={commentAuthor.name}
+                    badge={commentAuthor.badge}
                     size="sm"
                   />
                 )}
@@ -227,7 +231,9 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
           <form onSubmit={handleComment} className="flex space-x-3">
             {profile && (
               <AvatarWithBadge
-                user={profile}
+                src={profile.avatar_url || '/placeholder.svg'}
+                alt={profile.name}
+                badge={profile.badge}
                 size="sm"
               />
             )}

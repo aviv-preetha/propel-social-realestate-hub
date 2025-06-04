@@ -63,7 +63,9 @@ const Feed: React.FC = () => {
           <div className="flex space-x-4">
             {profile && (
               <AvatarWithBadge
-                user={profile}
+                src={profile.avatar_url || '/placeholder.svg'}
+                alt={profile.name}
+                badge={profile.badge}
                 size="md"
               />
             )}
