@@ -185,10 +185,10 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onClose, us
 
           {/* User Posts */}
           <div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Posts</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">All Posts ({userPosts.length})</h3>
             {userPosts.length > 0 ? (
               <div className="space-y-4">
-                {userPosts.slice(0, 3).map((post) => (
+                {userPosts.map((post) => (
                   <div key={post.id} className="border rounded-lg p-4">
                     <p className="text-gray-800 mb-2">{post.content}</p>
                     {post.images && post.images.length > 0 && (
