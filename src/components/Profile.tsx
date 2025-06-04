@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Edit, MapPin, Heart, Star, Building, Camera, MessageSquare, FileText, List, X } from 'lucide-react';
+import { Edit, MapPin, Heart, Star, Building, Camera, MessageSquare, FileText, List, X, Bed, Bath, Square } from 'lucide-react';
 import { useProfile } from '@/hooks/useProfile';
 import { useAuth } from '@/hooks/useAuth';
 import { useConnections } from '@/hooks/useConnections';
@@ -18,7 +18,7 @@ import UserProperties from './UserProperties';
 import ShortlistsManager from './ShortlistsManager';
 import UserPosts from './UserPosts';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ListingPreferences {
   types: string[];
