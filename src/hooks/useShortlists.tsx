@@ -14,7 +14,7 @@ export interface Shortlist {
   created_at: string;
   updated_at: string;
   properties?: any[];
-  shortlist_properties?: any[];
+  property_count?: number;
 }
 
 export interface ShortlistInvitation {
@@ -41,15 +41,10 @@ export function useShortlists() {
     if (!profile?.id) return;
 
     try {
-      // Fetch user's own shortlists with property counts
+      // Fetch user's own shortlists
       const { data: ownShortlists, error: ownError } = await supabase
         .from('shortlists')
-        .select(`
-          *,
-          shortlist_properties (
-            property_id
-          )
-        `)
+        .select('*')
         .eq('user_id', profile.id)
         .order('created_at', { ascending: false });
 
@@ -64,17 +59,12 @@ export function useShortlists() {
 
       if (memberError) throw memberError;
 
-      let memberShortlists: Shortlist[] = [];
+      let memberShortlists: any[] = [];
       if (memberData && memberData.length > 0) {
         const shortlistIds = memberData.map(m => m.shortlist_id);
         const { data: sharedShortlists, error: sharedError } = await supabase
           .from('shortlists')
-          .select(`
-            *,
-            shortlist_properties (
-              property_id
-            )
-          `)
+          .select('*')
           .in('id', shortlistIds);
 
         if (sharedError) throw sharedError;
@@ -84,12 +74,26 @@ export function useShortlists() {
       const allShortlists = [
         ...(ownShortlists || []),
         ...memberShortlists
-      ].map(shortlist => ({
-        ...shortlist,
-        properties: shortlist.shortlist_properties || []
-      }));
+      ];
 
-      setShortlists(allShortlists);
+      // Fetch property counts for each shortlist
+      const shortlistsWithCounts = await Promise.all(
+        allShortlists.map(async (shortlist) => {
+          const { count, error } = await supabase
+            .from('shortlist_properties')
+            .select('*', { count: 'exact', head: true })
+            .eq('shortlist_id', shortlist.id);
+
+          if (error) {
+            console.error('Error counting properties for shortlist:', error);
+            return { ...shortlist, property_count: 0 };
+          }
+
+          return { ...shortlist, property_count: count || 0 };
+        })
+      );
+
+      setShortlists(shortlistsWithCounts);
     } catch (error) {
       console.error('Error fetching shortlists:', error);
       toast({
@@ -168,7 +172,8 @@ export function useShortlists() {
 
       if (error) throw error;
 
-      setShortlists(prev => [data, ...prev]);
+      const newShortlist = { ...data, property_count: 0 };
+      setShortlists(prev => [newShortlist, ...prev]);
       toast({
         title: "Shortlist created!",
         description: `"${name}" has been created`,
@@ -205,6 +210,13 @@ export function useShortlists() {
         });
 
       if (error) throw error;
+
+      // Update the property count
+      setShortlists(prev => prev.map(shortlist => 
+        shortlist.id === shortlistId 
+          ? { ...shortlist, property_count: (shortlist.property_count || 0) + 1 }
+          : shortlist
+      ));
 
       toast({
         title: "Property added!",
