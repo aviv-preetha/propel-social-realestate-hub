@@ -23,7 +23,8 @@ export function useNotifications() {
   useEffect(() => {
     if (user) {
       fetchNotifications();
-      subscribeToNotifications();
+      const cleanup = subscribeToNotifications();
+      return cleanup;
     } else {
       setNotifications([]);
       setUnreadCount(0);
@@ -44,8 +45,14 @@ export function useNotifications() {
 
       if (error) throw error;
 
-      setNotifications(data || []);
-      setUnreadCount(data?.filter(n => !n.is_read).length || 0);
+      // Type assertion to ensure proper typing
+      const typedNotifications = (data || []).map(notification => ({
+        ...notification,
+        type: notification.type as 'like' | 'comment' | 'mention'
+      }));
+
+      setNotifications(typedNotifications);
+      setUnreadCount(typedNotifications.filter(n => !n.is_read).length);
     } catch (error) {
       console.error('Error fetching notifications:', error);
     } finally {
@@ -54,10 +61,10 @@ export function useNotifications() {
   };
 
   const subscribeToNotifications = () => {
-    if (!user) return;
+    if (!user) return () => {};
 
     const channel = supabase
-      .channel('notifications-changes')
+      .channel(`notifications-${user.id}`)
       .on(
         'postgres_changes',
         {
@@ -67,7 +74,10 @@ export function useNotifications() {
           filter: `user_id=eq.${user.id}`
         },
         (payload) => {
-          const newNotification = payload.new as Notification;
+          const newNotification = {
+            ...payload.new,
+            type: payload.new.type as 'like' | 'comment' | 'mention'
+          } as Notification;
           setNotifications(prev => [newNotification, ...prev]);
           setUnreadCount(prev => prev + 1);
         }
