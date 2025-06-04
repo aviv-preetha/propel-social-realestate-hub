@@ -656,47 +656,44 @@ const Profile: React.FC = () => {
             )}
 
             {/* User's Own Shortlists */}
-            <div>
-              <h3 className="text-lg font-semibold mb-4 text-gray-900">My Favorites</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {shortlists.map((shortlist) => (
-                  <div key={shortlist.id} className="p-4 border rounded-lg bg-gray-50">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-lg mb-2">{shortlist.name}</h3>
-                        {shortlist.description && (
-                          <p className="text-gray-600 text-sm mb-2">{shortlist.description}</p>
-                        )}
-                        <p className="text-sm text-gray-500 mb-3">
-                          {shortlist.property_count || 0} properties
-                        </p>
-                      </div>
-                      {shortlist.is_shared && (
-                        <div className="flex items-center text-blue-600 ml-2">
-                          <Share2 className="h-4 w-4" />
-                        </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {shortlists.map((shortlist) => (
+                <div key={shortlist.id} className="p-4 border rounded-lg bg-gray-50">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-lg mb-2">{shortlist.name}</h3>
+                      {shortlist.description && (
+                        <p className="text-gray-600 text-sm mb-2">{shortlist.description}</p>
                       )}
+                      <p className="text-sm text-gray-500 mb-3">
+                        {shortlist.property_count || 0} properties
+                      </p>
                     </div>
-                    
-                    <div className="space-y-2">
-                      <button
-                        onClick={() => handleViewProperties(shortlist.id)}
-                        className="w-full bg-primary text-primary-foreground px-4 py-2 rounded-3xl text-sm hover:bg-primary/90 transition-colors"
-                      >
-                        View Properties
-                      </button>
-                      
-                      <button
-                        onClick={() => handleShareShortlist(shortlist)}
-                        className="w-full bg-gray-100 text-gray-700 px-4 py-2 rounded-3xl text-sm hover:bg-gray-200 transition-colors flex items-center justify-center space-x-2"
-                      >
+                    {shortlist.is_shared && (
+                      <div className="flex items-center text-blue-600 ml-2">
                         <Share2 className="h-4 w-4" />
-                        <span>Share</span>
-                      </button>
-                    </div>
+                      </div>
+                    )}
                   </div>
-                ))}
-              </div>
+                  
+                  <div className="space-y-2">
+                    <button
+                      onClick={() => handleViewProperties(shortlist.id)}
+                      className="w-full bg-primary text-primary-foreground px-4 py-2 rounded-3xl text-sm hover:bg-primary/90 transition-colors"
+                    >
+                      View Properties
+                    </button>
+                    
+                    <button
+                      onClick={() => handleShareShortlist(shortlist)}
+                      className="w-full bg-gray-100 text-gray-700 px-4 py-2 rounded-3xl text-sm hover:bg-gray-200 transition-colors flex items-center justify-center space-x-2"
+                    >
+                      <Share2 className="h-4 w-4" />
+                      <span>Share</span>
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
