@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Home, Users, Building, User, ChevronDown, LogOut } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import NotificationsDropdown from './NotificationsDropdown';
 
 interface NavigationProps {
   activeTab: string;
@@ -43,24 +44,31 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }) => {
             <h1 className="text-xl font-bold text-gray-900">PropelMau</h1>
           </div>
           
-          <div className="flex space-x-1 relative">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => handleProfileClick(item.id)}
-                  className={`flex flex-col items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                    activeTab === item.id
-                      ? 'text-blue-600 bg-blue-50'
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                  }`}
-                >
-                  <Icon className="h-5 w-5 mb-1" />
-                  <span>{item.label}</span>
-                </button>
-              );
-            })}
+          <div className="flex items-center justify-center flex-1">
+            <div className="flex space-x-1">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => handleProfileClick(item.id)}
+                    className={`flex flex-col items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                      activeTab === item.id
+                        ? 'text-blue-600 bg-blue-50'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                    }`}
+                  >
+                    <Icon className="h-5 w-5 mb-1" />
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          
+          <div className="flex items-center space-x-1">
+            {/* Notifications dropdown */}
+            <NotificationsDropdown />
             
             {/* Profile dropdown */}
             <div className="relative">
