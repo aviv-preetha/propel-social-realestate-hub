@@ -7,8 +7,10 @@ import RatingModal from './RatingModal';
 import UserProfileModal from './UserProfileModal';
 import { useConnections } from '@/hooks/useConnections';
 import { useBusinessRatings } from '@/hooks/useBusinessRatings';
+import { useProfile } from '@/hooks/useProfile';
 
 const Network: React.FC = () => {
+  const { profile } = useProfile();
   const { 
     connections, 
     suggestions, 
@@ -189,8 +191,10 @@ const Network: React.FC = () => {
 
   // Get pending connection requests (received requests) with profile data
   const getPendingRequests = () => {
+    if (!profile?.id) return [];
+    
     return pendingConnections
-      .filter(conn => conn.connected_user_id === connections[0]?.id) // requests received by current user
+      .filter(conn => conn.connected_user_id === profile.id) // requests received by current user
       .map(conn => suggestions.find(user => user.id === conn.user_id))
       .filter(Boolean);
   };
