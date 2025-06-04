@@ -43,7 +43,7 @@ const NotificationsDropdown: React.FC = () => {
           </button>
         </DropdownMenuTrigger>
         
-        <DropdownMenuContent align="end" className="w-80 max-h-96 overflow-y-auto">
+        <DropdownMenuContent align="end" className="w-80 bg-white border border-gray-200 shadow-lg z-50">
           <div className="flex items-center justify-between px-4 py-2">
             <DropdownMenuLabel>Notifications</DropdownMenuLabel>
             {unreadCount > 0 && (

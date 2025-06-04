@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
@@ -69,7 +70,8 @@ export function usePosts() {
   };
 
   const extractMentions = (content: string): string[] => {
-    const mentionRegex = /@(\w+)/g;
+    // Updated regex to match @ followed by names (first and last name), stopping at word boundaries
+    const mentionRegex = /@([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\b/g;
     const mentions: string[] = [];
     let match;
     
@@ -162,6 +164,19 @@ export function usePosts() {
     }
 
     try {
+      // First, get profile IDs for mentioned usernames before creating the post
+      const mentions = extractMentions(content);
+      let mentionedProfiles: any[] = [];
+      
+      if (mentions.length > 0) {
+        const { data } = await supabase
+          .from('profiles')
+          .select('id, name')
+          .in('name', mentions);
+        
+        mentionedProfiles = data || [];
+      }
+
       const { data, error } = await supabase
         .from('posts')
         .insert({
@@ -175,25 +190,16 @@ export function usePosts() {
 
       if (error) throw error;
 
-      // Create mentions notifications
-      const mentions = extractMentions(content);
-      if (mentions.length > 0) {
-        // Get profile IDs for mentioned usernames
-        const { data: mentionedProfiles } = await supabase
-          .from('profiles')
-          .select('id, name')
-          .in('name', mentions);
-
-        if (mentionedProfiles) {
-          for (const mentionedProfile of mentionedProfiles) {
-            if (mentionedProfile.id !== profile.id) {
-              await createNotification(
-                mentionedProfile.id,
-                'mention',
-                profile.id,
-                data.id
-              );
-            }
+      // Create mentions notifications after post is created
+      if (mentionedProfiles.length > 0) {
+        for (const mentionedProfile of mentionedProfiles) {
+          if (mentionedProfile.id !== profile.id) {
+            await createNotification(
+              mentionedProfile.id,
+              'mention',
+              profile.id,
+              data.id
+            );
           }
         }
       }
