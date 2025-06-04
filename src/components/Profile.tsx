@@ -55,7 +55,7 @@ const Profile: React.FC = () => {
   const { properties } = useProperties();
   const { fetchBusinessRatings, getRatingStats } = useBusinessRatings();
   const { posts } = usePosts();
-  const { shortlists, createShortlist, updateShortlistSharing, inviteToShortlist } = useShortlists();
+  const { shortlists, createShortlist, updateShortlistSharing, inviteToShortlist, checkInvitationStatus } = useShortlists();
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [activeSection, setActiveSection] = useState<'reviews' | 'connections' | 'properties' | 'shortlists' | 'posts' | null>(null);
@@ -67,6 +67,8 @@ const Profile: React.FC = () => {
   const [selectedShortlistForShare, setSelectedShortlistForShare] = useState<any>(null);
   const [newShortlistName, setNewShortlistName] = useState('');
   const [newShortlistDescription, setNewShortlistDescription] = useState('');
+  const [invitationStatuses, setInvitationStatuses] = useState<{[key: string]: {[key: string]: string}}>({});
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
   // Fetch ratings if current user is a business
@@ -256,9 +258,33 @@ const Profile: React.FC = () => {
   // Count shortlists correctly
   const shortlistsCount = shortlists.length;
 
+  const fetchInvitationStatuses = async (shortlistId: string) => {
+    if (!connections.length) return;
+    
+    const statuses: {[key: string]: string} = {};
+    
+    for (const connection of connections) {
+      try {
+        const status = await checkInvitationStatus(shortlistId, connection.id);
+        statuses[connection.id] = status;
+      } catch (error) {
+        console.error('Error checking invitation status:', error);
+        statuses[connection.id] = 'not_invited';
+      }
+    }
+    
+    setInvitationStatuses(prev => ({
+      ...prev,
+      [shortlistId]: statuses
+    }));
+  };
+
   const handleShareShortlist = (shortlist: any) => {
     setSelectedShortlistForShare(shortlist);
     setShowShareModal(true);
+    
+    // Fetch invitation statuses when opening share modal
+    fetchInvitationStatuses(shortlist.id);
   };
 
   const copyShareLink = (shareToken: string) => {
@@ -270,14 +296,82 @@ const Profile: React.FC = () => {
     });
   };
 
+  const getButtonContent = (connectionId: string) => {
+    if (!selectedShortlistForShare) return null;
+    
+    const status = invitationStatuses[selectedShortlistForShare.id]?.[connectionId];
+    
+    switch (status) {
+      case 'pending':
+        return (
+          <Button size="sm" disabled className="bg-yellow-100 text-yellow-800 border border-yellow-300">
+            <UserPlus className="h-4 w-4 mr-1" />
+            Invited
+          </Button>
+        );
+      case 'accepted':
+        return (
+          <Button size="sm" disabled className="bg-green-100 text-green-800 border border-green-300">
+            <UserPlus className="h-4 w-4 mr-1" />
+            Joined
+          </Button>
+        );
+      case 'rejected':
+        return (
+          <Button size="sm" disabled className="bg-red-100 text-red-800 border border-red-300">
+            Declined
+          </Button>
+        );
+      default:
+        return (
+          <Button
+            size="sm"
+            onClick={() => handleInviteUser(connectionId)}
+            disabled={isLoading}
+            className="bg-blue-600 hover:bg-blue-700 text-white"
+          >
+            <UserPlus className="h-4 w-4 mr-1" />
+            Invite
+          </Button>
+        );
+    }
+  };
+
   const handleInviteUser = async (connectionId: string) => {
     if (!selectedShortlistForShare) return;
     
-    await inviteToShortlist(selectedShortlistForShare.id, connectionId);
-    toast({
-      title: "Invitation sent!",
-      description: "Your connection has been invited to the shortlist",
-    });
+    setIsLoading(true);
+    try {
+      await inviteToShortlist(selectedShortlistForShare.id, connectionId);
+      
+      // Refresh invitation statuses after successful invite
+      await fetchInvitationStatuses(selectedShortlistForShare.id);
+      
+      toast({
+        title: "Invitation sent!",
+        description: "Your connection has been invited to the shortlist",
+      });
+    } catch (error: any) {
+      console.error('Error inviting user:', error);
+      
+      if (error?.code === '23505' || error?.message?.includes('already exists')) {
+        // Refresh statuses even for duplicate invitations
+        await fetchInvitationStatuses(selectedShortlistForShare.id);
+        toast({
+          title: "Already invited",
+          description: "This user has already been invited to this shortlist",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to send invitation",
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -600,7 +694,7 @@ const Profile: React.FC = () => {
                             {property.type === 'rent' && <span className="text-sm text-gray-500">/month</span>}
                           </p>
                         </div>
-                        <div className="flex flex-col items-end space-y-2">
+                        <div className="flex flex-col items-end space-x-2">
                           {property.images && property.images[0] && (
                             <img
                               src={property.images[0]}
@@ -699,14 +793,7 @@ const Profile: React.FC = () => {
                           <p className="text-xs text-gray-600">{connection.location}</p>
                         </div>
                       </div>
-                      <Button
-                        size="sm"
-                        onClick={() => handleInviteUser(connection.id)}
-                        className="flex items-center space-x-1"
-                      >
-                        <UserPlus className="h-4 w-4" />
-                        <span>Invite</span>
-                      </Button>
+                      {getButtonContent(connection.id)}
                     </div>
                   ))}
                 </div>
