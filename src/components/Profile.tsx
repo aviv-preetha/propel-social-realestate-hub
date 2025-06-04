@@ -285,11 +285,11 @@ const Profile: React.FC = () => {
             }`}
             onClick={() => handleSectionToggle('properties')}
           >
-            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-3">
+            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-3 mx-auto">
               <Building className="h-6 w-6 text-blue-600" />
             </div>
-            <h3 className="text-2xl font-bold text-gray-900">{userPropertiesCount}</h3>
-            <p className="text-gray-600">Properties Listed</p>
+            <h3 className="text-2xl font-bold text-gray-900 text-center">{userPropertiesCount}</h3>
+            <p className="text-gray-600 text-center">Properties Listed</p>
           </div>
         )}
         
@@ -300,11 +300,11 @@ const Profile: React.FC = () => {
             }`}
             onClick={() => handleSectionToggle('shortlisted')}
           >
-            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-3">
+            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-3 mx-auto">
               <Heart className="h-6 w-6 text-green-600" />
             </div>
-            <h3 className="text-2xl font-bold text-gray-900">{shortlistedProperties.length}</h3>
-            <p className="text-gray-600">Shortlisted</p>
+            <h3 className="text-2xl font-bold text-gray-900 text-center">{shortlistedProperties.length}</h3>
+            <p className="text-gray-600 text-center">Shortlisted</p>
           </div>
         )}
 
@@ -315,13 +315,13 @@ const Profile: React.FC = () => {
             }`}
             onClick={() => handleSectionToggle('reviews')}
           >
-            <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center mb-3">
+            <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center mb-3 mx-auto">
               <Star className="h-6 w-6 text-yellow-600" />
             </div>
-            <h3 className="text-2xl font-bold text-gray-900">
+            <h3 className="text-2xl font-bold text-gray-900 text-center">
               {ratingStats ? ratingStats.totalRatings : 0}
             </h3>
-            <p className="text-gray-600">Reviews</p>
+            <p className="text-gray-600 text-center">Reviews</p>
           </div>
         )}
         
@@ -331,11 +331,11 @@ const Profile: React.FC = () => {
           }`}
           onClick={() => handleSectionToggle('connections')}
         >
-          <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mb-3">
+          <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mb-3 mx-auto">
             <MessageSquare className="h-6 w-6 text-purple-600" />
           </div>
-          <h3 className="text-2xl font-bold text-gray-900">{connections.length}</h3>
-          <p className="text-gray-600">Connections</p>
+          <h3 className="text-2xl font-bold text-gray-900 text-center">{connections.length}</h3>
+          <p className="text-gray-600 text-center">Connections</p>
         </div>
 
         <div 
@@ -344,11 +344,11 @@ const Profile: React.FC = () => {
           }`}
           onClick={() => handleSectionToggle('posts')}
         >
-          <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mb-3">
+          <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mb-3 mx-auto">
             <FileText className="h-6 w-6 text-orange-600" />
           </div>
-          <h3 className="text-2xl font-bold text-gray-900">{userPostsCount}</h3>
-          <p className="text-gray-600">Posts</p>
+          <h3 className="text-2xl font-bold text-gray-900 text-center">{userPostsCount}</h3>
+          <p className="text-gray-600 text-center">Posts</p>
         </div>
       </div>
 

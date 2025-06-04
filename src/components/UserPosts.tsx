@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, MessageCircle, Share, Send, MoreHorizontal, Edit, Trash2, Plus } from 'lucide-react';
+import { Heart, MessageCircle, Share, Send, MoreHorizontal, Edit, Trash2, Plus, Image } from 'lucide-react';
 import { usePosts } from '@/hooks/usePosts';
 import { useProfile } from '@/hooks/useProfile';
 import { useConnections } from '@/hooks/useConnections';
 import { supabase } from '@/integrations/supabase/client';
 import UserBadge from './UserBadge';
 import UserMention from './UserMention';
+import ImageUpload from './ImageUpload';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from './ui/carousel';
 import { Card, CardContent } from './ui/card';
 import { Textarea } from './ui/textarea';
@@ -50,6 +51,7 @@ const UserPosts: React.FC<UserPostsProps> = ({ userId }) => {
   const [editContent, setEditContent] = useState('');
   const [showCreatePost, setShowCreatePost] = useState(false);
   const [newPostContent, setNewPostContent] = useState('');
+  const [newPostImages, setNewPostImages] = useState<string[]>([]);
 
   // Filter posts by the user
   const userPosts = posts.filter(post => post.userId === userId);
@@ -124,9 +126,18 @@ const UserPosts: React.FC<UserPostsProps> = ({ userId }) => {
   const handleCreatePost = async () => {
     if (!newPostContent.trim()) return;
     
-    await createPost(newPostContent.trim());
+    await createPost(newPostContent.trim(), newPostImages.length > 0 ? newPostImages : undefined);
     setNewPostContent('');
+    setNewPostImages([]);
     setShowCreatePost(false);
+  };
+
+  const handleImageUpload = (url: string) => {
+    setNewPostImages(prev => [...prev, url]);
+  };
+
+  const removeImage = (index: number) => {
+    setNewPostImages(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleCommentSubmit = async (postId: string) => {
@@ -270,12 +281,49 @@ const UserPosts: React.FC<UserPostsProps> = ({ userId }) => {
                     />
                   </div>
                 </div>
+
+                {/* Image Upload and Preview */}
+                <div className="pl-13">
+                  <div className="flex items-center space-x-4">
+                    <ImageUpload
+                      bucket="posts"
+                      onUpload={handleImageUpload}
+                      className="flex items-center space-x-2 text-gray-600 hover:text-gray-700 cursor-pointer"
+                    >
+                      <Image className="h-5 w-5" />
+                      <span className="text-sm">Add Photo</span>
+                    </ImageUpload>
+                  </div>
+
+                  {/* Image Previews */}
+                  {newPostImages.length > 0 && (
+                    <div className="mt-4 grid grid-cols-2 md:grid-cols-3 gap-2">
+                      {newPostImages.map((image, index) => (
+                        <div key={index} className="relative">
+                          <img
+                            src={image}
+                            alt={`Upload ${index + 1}`}
+                            className="w-full h-32 object-cover rounded-lg"
+                          />
+                          <button
+                            onClick={() => removeImage(index)}
+                            className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 <div className="flex justify-end space-x-2">
                   <Button
                     variant="outline"
                     onClick={() => {
                       setShowCreatePost(false);
                       setNewPostContent('');
+                      setNewPostImages([]);
                     }}
                   >
                     Cancel
