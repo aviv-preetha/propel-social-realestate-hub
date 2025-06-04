@@ -391,8 +391,7 @@ const Properties: React.FC = () => {
             <div className="bg-blue-50 rounded-xl border border-blue-200 px-6 py-4">
               <div className="text-center">
                 <Building className="h-6 w-6 text-blue-600 mx-auto mb-2" />
-                <h3 className="text-md font-medium text-blue-900 mb-1">Nothing specific found for user preferences.</h3>
-                <p className="text-blue-700 text-sm">Here are some recommendations:</p>
+                <h3 className="text-md font-medium text-blue-900 mb-1">More recommendations for you:</h3>
               </div>
             </div>
             <Separator className="flex-1" />
