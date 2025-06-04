@@ -30,12 +30,17 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onClose, us
   const { posts } = usePosts();
   const [mutualConnections, setMutualConnections] = useState<any[]>([]);
 
+  // Early return if user is not provided
+  if (!user) {
+    return null;
+  }
+
   // Filter posts by the user
   const userPosts = posts.filter(post => post.userId === user.user_id);
   const ratingStats = user.badge === 'business' ? getRatingStats(user.id) : null;
 
   useEffect(() => {
-    if (isOpen && profile) {
+    if (isOpen && profile && user) {
       // Find mutual connections
       const mutual = connections.filter(connection => 
         connection.id !== user.id && connection.id !== profile.id
@@ -194,7 +199,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onClose, us
                       </div>
                     )}
                     <p className="text-xs text-gray-500">
-                      {post.timestamp.toLocaleDateString()}
+                      {new Date(post.created_at).toLocaleDateString()}
                     </p>
                   </div>
                 ))}
