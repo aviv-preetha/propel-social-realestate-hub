@@ -41,7 +41,6 @@ export function useProperties() {
   const { user } = useAuth();
   const { profile } = useProfile();
   const [properties, setProperties] = useState<Property[]>([]);
-  const [shortlistedProperties, setShortlistedProperties] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
@@ -81,95 +80,19 @@ export function useProperties() {
     }
   };
 
-  const fetchShortlistedProperties = async () => {
-    if (!profile?.id) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('shortlisted_properties')
-        .select('property_id')
-        .eq('user_id', profile.id);
-
-      if (error) throw error;
-
-      setShortlistedProperties(data.map(item => item.property_id));
-    } catch (error) {
-      console.error('Error fetching shortlisted properties:', error);
-    }
-  };
-
-  const toggleShortlist = async (propertyId: string) => {
-    if (!user || !profile?.id) {
-      toast({
-        title: "Authentication required",
-        description: "Please sign in to shortlist properties",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const isShortlisted = shortlistedProperties.includes(propertyId);
-
-    try {
-      if (isShortlisted) {
-        const { error } = await supabase
-          .from('shortlisted_properties')
-          .delete()
-          .eq('user_id', profile.id)
-          .eq('property_id', propertyId);
-
-        if (error) throw error;
-
-        setShortlistedProperties(prev => prev.filter(id => id !== propertyId));
-        toast({
-          title: "Removed from shortlist",
-          description: "Property removed from your shortlist",
-        });
-      } else {
-        const { error } = await supabase
-          .from('shortlisted_properties')
-          .insert({
-            user_id: profile.id,
-            property_id: propertyId
-          });
-
-        if (error) throw error;
-
-        setShortlistedProperties(prev => [...prev, propertyId]);
-        toast({
-          title: "Added to shortlist",
-          description: "Property added to your shortlist",
-        });
-      }
-    } catch (error) {
-      console.error('Error toggling shortlist:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update shortlist",
-        variant: "destructive",
-      });
-    }
-  };
-
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
       await fetchProperties();
-      if (profile?.id) {
-        await fetchShortlistedProperties();
-      }
       setLoading(false);
     };
 
     loadData();
-  }, [profile?.id]);
+  }, []);
 
   return {
     properties,
-    shortlistedProperties,
     loading,
-    toggleShortlist,
-    refetch: fetchProperties,
-    isShortlisted: (propertyId: string) => shortlistedProperties.includes(propertyId)
+    refetch: fetchProperties
   };
 }

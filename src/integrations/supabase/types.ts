@@ -393,6 +393,84 @@ export type Database = {
           },
         ]
       }
+      shortlist_invitations: {
+        Row: {
+          created_at: string
+          id: string
+          invitee_id: string
+          inviter_id: string
+          shortlist_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          invitee_id: string
+          inviter_id: string
+          shortlist_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          invitee_id?: string
+          inviter_id?: string
+          shortlist_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      shortlist_members: {
+        Row: {
+          id: string
+          joined_at: string
+          role: string
+          shortlist_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          joined_at?: string
+          role?: string
+          shortlist_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          joined_at?: string
+          role?: string
+          shortlist_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      shortlist_properties: {
+        Row: {
+          added_by: string
+          created_at: string
+          id: string
+          property_id: string
+          shortlist_id: string
+        }
+        Insert: {
+          added_by: string
+          created_at?: string
+          id?: string
+          property_id: string
+          shortlist_id: string
+        }
+        Update: {
+          added_by?: string
+          created_at?: string
+          id?: string
+          property_id?: string
+          shortlist_id?: string
+        }
+        Relationships: []
+      }
       shortlisted_properties: {
         Row: {
           created_at: string | null
@@ -429,12 +507,48 @@ export type Database = {
           },
         ]
       }
+      shortlists: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_shared: boolean
+          name: string
+          share_token: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_shared?: boolean
+          name: string
+          share_token?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_shared?: boolean
+          name?: string
+          share_token?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      accept_shortlist_invitation: {
+        Args: { invitation_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never
