@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Edit, MapPin, Heart, Star, Building, Camera, MessageSquare } from 'lucide-react';
 import { useProfile } from '@/hooks/useProfile';
@@ -117,6 +116,28 @@ const Profile: React.FC = () => {
     return `€${price}`;
   };
 
+  const formatSizeRange = (minSize: number, maxSize: number) => {
+    if (minSize > 0 && maxSize > 0) {
+      return `${minSize} - ${maxSize} m²`;
+    } else if (minSize > 0) {
+      return `> ${minSize} m²`;
+    } else if (maxSize > 0) {
+      return `< ${maxSize} m²`;
+    }
+    return null;
+  };
+
+  const formatPriceRange = (minPrice: number, maxPrice: number) => {
+    if (minPrice > 0 && maxPrice > 0) {
+      return `${formatPrice(minPrice)} - ${formatPrice(maxPrice)}`;
+    } else if (minPrice > 0) {
+      return `> ${formatPrice(minPrice)}`;
+    } else if (maxPrice > 0) {
+      return `< ${formatPrice(maxPrice)}`;
+    }
+    return null;
+  };
+
   const ratingStats = profile.badge === 'business' ? getRatingStats(profile.id) : null;
   const isBusiness = profile.badge === 'business';
   const isOwner = profile.badge === 'owner';
@@ -202,19 +223,19 @@ const Profile: React.FC = () => {
                           </span>
                         </div>
                       )}
-                      {(listingPreferences.minSize > 0 || listingPreferences.maxSize > 0) && (
+                      {formatSizeRange(listingPreferences.minSize, listingPreferences.maxSize) && (
                         <div>
                           <span className="text-blue-700 font-medium">Size: </span>
                           <span className="text-blue-600">
-                            {listingPreferences.minSize > 0 ? listingPreferences.minSize : '0'} - {listingPreferences.maxSize > 0 ? listingPreferences.maxSize : '∞'} m²
+                            {formatSizeRange(listingPreferences.minSize, listingPreferences.maxSize)}
                           </span>
                         </div>
                       )}
-                      {(listingPreferences.minPrice > 0 || listingPreferences.maxPrice > 0) && (
+                      {formatPriceRange(listingPreferences.minPrice, listingPreferences.maxPrice) && (
                         <div>
                           <span className="text-blue-700 font-medium">Price: </span>
                           <span className="text-blue-600">
-                            {listingPreferences.minPrice > 0 ? formatPrice(listingPreferences.minPrice) : '€0'} - {listingPreferences.maxPrice > 0 ? formatPrice(listingPreferences.maxPrice) : '∞'}
+                            {formatPriceRange(listingPreferences.minPrice, listingPreferences.maxPrice)}
                           </span>
                         </div>
                       )}
