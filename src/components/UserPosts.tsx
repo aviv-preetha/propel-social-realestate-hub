@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Heart, MessageCircle, Share, Send, MoreHorizontal, Edit, Trash2, Plus, Image } from 'lucide-react';
 import { usePosts } from '@/hooks/usePosts';
 import { useProfile } from '@/hooks/useProfile';
@@ -6,7 +6,6 @@ import { useConnections } from '@/hooks/useConnections';
 import { supabase } from '@/integrations/supabase/client';
 import UserBadge from './UserBadge';
 import UserMention from './UserMention';
-import ImageUpload from './ImageUpload';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from './ui/carousel';
 import { Card, CardContent } from './ui/card';
 import { Textarea } from './ui/textarea';
@@ -50,8 +49,13 @@ const UserPosts: React.FC<UserPostsProps> = ({ userId }) => {
   const [editingPost, setEditingPost] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
   const [showCreatePost, setShowCreatePost] = useState(false);
+  
+  // Reuse the exact same state from Feed component for post creation
   const [newPostContent, setNewPostContent] = useState('');
   const [newPostImages, setNewPostImages] = useState<string[]>([]);
+  const [uploadingImages, setUploadingImages] = useState<File[]>([]);
+  const [postTaggedUsers, setPostTaggedUsers] = useState<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Filter posts by the user
   const userPosts = posts.filter(post => post.userId === userId);
@@ -124,20 +128,71 @@ const UserPosts: React.FC<UserPostsProps> = ({ userId }) => {
   }, [userPosts, profileCache]);
 
   const handleCreatePost = async () => {
-    if (!newPostContent.trim()) return;
-    
-    await createPost(newPostContent.trim(), newPostImages.length > 0 ? newPostImages : undefined);
+    const content = newPostContent.trim();
+    if (!content) return;
+
+    await createPost(content, newPostImages.length > 0 ? newPostImages : undefined);
     setNewPostContent('');
     setNewPostImages([]);
+    setUploadingImages([]);
+    setPostTaggedUsers([]);
     setShowCreatePost(false);
   };
 
-  const handleImageUpload = (url: string) => {
-    setNewPostImages(prev => [...prev, url]);
+  const handlePhotoClick = () => {
+    fileInputRef.current?.click();
   };
 
-  const removeImage = (index: number) => {
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    const fileArray = Array.from(files);
+    setUploadingImages(prev => [...prev, ...fileArray]);
+
+    for (const file of fileArray) {
+      try {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Math.random()}.${fileExt}`;
+        const filePath = `${fileName}`;
+
+        const { data, error } = await supabase.storage
+          .from('post-images')
+          .upload(filePath, file);
+
+        if (error) {
+          console.error('Error uploading file:', error);
+          setUploadingImages(prev => prev.filter(f => f !== file));
+          continue;
+        }
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('post-images')
+          .getPublicUrl(filePath);
+
+        setNewPostImages(prev => [...prev, publicUrl]);
+        setUploadingImages(prev => prev.filter(f => f !== file));
+      } catch (error) {
+        console.error('Error uploading file:', error);
+        setUploadingImages(prev => prev.filter(f => f !== file));
+      }
+    }
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleRemoveImage = (index: number) => {
     setNewPostImages(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleRemoveUploadingImage = (index: number) => {
+    setUploadingImages(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handlePostTagUser = (userId: string) => {
+    setPostTaggedUsers(prev => [...prev, userId]);
   };
 
   const handleCommentSubmit = async (postId: string) => {
@@ -243,7 +298,7 @@ const UserPosts: React.FC<UserPostsProps> = ({ userId }) => {
 
   return (
     <div className="p-6">
-      {/* Create Post Section - Only show for own profile */}
+      {/* Create Post Section - Only show for own profile - REUSED FROM FEED */}
       {isOwnProfile && (
         <div className="mb-6">
           {!showCreatePost ? (
@@ -264,84 +319,115 @@ const UserPosts: React.FC<UserPostsProps> = ({ userId }) => {
               </CardContent>
             </Card>
           ) : (
-            <Card className="p-4">
-              <CardContent className="p-0 space-y-4">
-                <div className="flex items-start space-x-3">
-                  <img
-                    src={profile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile?.name}`}
-                    alt={profile?.name}
-                    className="w-10 h-10 rounded-full object-cover"
+            /* Reuse the exact same create post interface from Feed */
+            <div className="bg-white rounded-xl shadow-sm border p-6">
+              <div className="flex space-x-4">
+                <img
+                  src={profile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile?.name}`}
+                  alt={profile?.name}
+                  className="w-12 h-12 rounded-full object-cover"
+                />
+                <div className="flex-1">
+                  <UserMention
+                    value={newPostContent}
+                    onChange={setNewPostContent}
+                    onTagUser={handlePostTagUser}
+                    placeholder="What's on your mind about real estate?"
+                    className="w-full p-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-left"
                   />
-                  <div className="flex-1">
-                    <Textarea
-                      value={newPostContent}
-                      onChange={(e) => setNewPostContent(e.target.value)}
-                      placeholder="What's on your mind?"
-                      className="min-h-[100px] resize-none"
-                    />
-                  </div>
-                </div>
-
-                {/* Image Upload and Preview */}
-                <div className="pl-13">
-                  <div className="flex items-center space-x-4">
-                    <ImageUpload
-                      bucket="posts"
-                      onUpload={handleImageUpload}
-                      className="flex items-center space-x-2 text-gray-600 hover:text-gray-700 cursor-pointer"
-                    >
-                      <Image className="h-5 w-5" />
-                      <span className="text-sm">Add Photo</span>
-                    </ImageUpload>
-                  </div>
-
-                  {/* Image Previews */}
-                  {newPostImages.length > 0 && (
-                    <div className="mt-4 grid grid-cols-2 md:grid-cols-3 gap-2">
-                      {newPostImages.map((image, index) => (
-                        <div key={index} className="relative">
-                          <img
-                            src={image}
-                            alt={`Upload ${index + 1}`}
-                            className="w-full h-32 object-cover rounded-lg"
-                          />
-                          <button
-                            onClick={() => removeImage(index)}
-                            className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600"
-                          >
-                            ×
-                          </button>
-                        </div>
-                      ))}
+                  
+                  {/* Image Preview Section - REUSED FROM FEED */}
+                  {(newPostImages.length > 0 || uploadingImages.length > 0) && (
+                    <div className="mt-3">
+                      <div className="grid grid-cols-2 gap-2">
+                        {/* Uploading images with loading state */}
+                        {uploadingImages.map((file, index) => (
+                          <div key={`uploading-${index}`} className="relative">
+                            <img
+                              src={URL.createObjectURL(file)}
+                              alt={`Uploading ${index + 1}`}
+                              className="w-full h-32 object-cover rounded-lg opacity-50"
+                            />
+                            <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-25 rounded-lg">
+                              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+                            </div>
+                            <button
+                              onClick={() => handleRemoveUploadingImage(index)}
+                              className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
+                        {/* Uploaded images */}
+                        {newPostImages.map((image, index) => (
+                          <div key={`uploaded-${index}`} className="relative">
+                            <img
+                              src={image}
+                              alt={`Upload ${index + 1}`}
+                              className="w-full h-32 object-cover rounded-lg"
+                            />
+                            <button
+                              onClick={() => handleRemoveImage(index)}
+                              className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
-                </div>
 
-                <div className="flex justify-end space-x-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setShowCreatePost(false);
-                      setNewPostContent('');
-                      setNewPostImages([]);
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={handleCreatePost}
-                    disabled={!newPostContent.trim()}
-                  >
-                    Post
-                  </Button>
+                  <div className="flex justify-between items-center mt-3">
+                    <div className="flex space-x-2">
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleFileSelect}
+                        className="hidden"
+                        multiple
+                      />
+                      <button 
+                        onClick={handlePhotoClick}
+                        className="text-gray-400 hover:text-gray-600 transition-colors"
+                      >
+                        📷 Photo
+                      </button>
+                      <button className="text-gray-400 hover:text-gray-600">
+                        🏠 Property
+                      </button>
+                    </div>
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => {
+                          setShowCreatePost(false);
+                          setNewPostContent('');
+                          setNewPostImages([]);
+                          setUploadingImages([]);
+                        }}
+                        className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button 
+                        onClick={handleCreatePost}
+                        disabled={!newPostContent.trim()}
+                        className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Post
+                      </button>
+                    </div>
+                  </div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           )}
         </div>
       )}
 
-      {/* Posts List */}
+      {/* Posts List - REUSED FROM FEED */}
       {userPosts.length === 0 ? (
         <div className="p-8 text-center">
           <MessageCircle className="h-12 w-12 text-gray-300 mx-auto mb-4" />
@@ -368,7 +454,7 @@ const UserPosts: React.FC<UserPostsProps> = ({ userId }) => {
 
             return (
               <div key={post.id} className="bg-white rounded-xl shadow-sm border">
-                {/* Post Header */}
+                {/* Post Header - REUSED FROM FEED */}
                 <div className="p-6 pb-4">
                   <div className="flex items-start space-x-3">
                     <img
@@ -440,7 +526,7 @@ const UserPosts: React.FC<UserPostsProps> = ({ userId }) => {
                   </div>
                 </div>
 
-                {/* Post Content */}
+                {/* Post Content - REUSED FROM FEED */}
                 <div className="px-6 pb-4">
                   {editingPost === post.id ? (
                     <div className="space-y-2">
@@ -470,7 +556,7 @@ const UserPosts: React.FC<UserPostsProps> = ({ userId }) => {
                   )}
                 </div>
 
-                {/* Post Images */}
+                {/* Post Images - REUSED FROM FEED */}
                 {post.images && post.images.length > 0 && (
                   <div className="px-6 pb-4">
                     {post.images.length === 1 ? (
@@ -499,7 +585,7 @@ const UserPosts: React.FC<UserPostsProps> = ({ userId }) => {
                   </div>
                 )}
 
-                {/* Post Actions */}
+                {/* Post Actions - REUSED FROM FEED */}
                 <div className="px-6 py-4 border-t border-gray-100">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-6">
@@ -526,7 +612,7 @@ const UserPosts: React.FC<UserPostsProps> = ({ userId }) => {
                   </div>
                 </div>
 
-                {/* Comments */}
+                {/* Comments - REUSED FROM FEED */}
                 {post.comments.length > 0 && (
                   <div className="px-6 pb-4 border-t border-gray-100">
                     <div className="space-y-3 mt-4">
@@ -561,7 +647,7 @@ const UserPosts: React.FC<UserPostsProps> = ({ userId }) => {
                   </div>
                 )}
 
-                {/* Comment Input */}
+                {/* Comment Input - REUSED FROM FEED */}
                 {profile && (
                   <div className="px-6 pb-6 border-t border-gray-100">
                     <div className="flex space-x-3 mt-4">
