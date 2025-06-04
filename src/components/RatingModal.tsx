@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import StarRating from './StarRating';
 import { supabase } from '@/integrations/supabase/client';
@@ -27,7 +27,45 @@ const RatingModal: React.FC<RatingModalProps> = ({
   const [rating, setRating] = useState(currentRating);
   const [comment, setComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [existingRatingId, setExistingRatingId] = useState<string | null>(null);
   const { toast } = useToast();
+
+  // Load existing rating data when modal opens
+  useEffect(() => {
+    if (isOpen && businessUser.id) {
+      loadExistingRating();
+    }
+  }, [isOpen, businessUser.id]);
+
+  const loadExistingRating = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!profile) return;
+
+      const { data: existingRating } = await supabase
+        .from('business_ratings')
+        .select('id, rating, comment')
+        .eq('rater_id', profile.id)
+        .eq('business_id', businessUser.id)
+        .single();
+
+      if (existingRating) {
+        setExistingRatingId(existingRating.id);
+        setRating(existingRating.rating);
+        setComment(existingRating.comment || '');
+      }
+    } catch (error) {
+      console.error('Error loading existing rating:', error);
+    }
+  };
 
   const handleSubmit = async () => {
     if (rating === 0) {
@@ -54,22 +92,41 @@ const RatingModal: React.FC<RatingModalProps> = ({
 
       if (!profile) throw new Error('Profile not found');
 
-      // Insert or update rating
-      const { error } = await supabase
-        .from('business_ratings')
-        .upsert({
-          rater_id: profile.id,
-          business_id: businessUser.id,
-          rating,
-          comment: comment.trim() || null
+      if (existingRatingId) {
+        // Update existing rating
+        const { error } = await supabase
+          .from('business_ratings')
+          .update({
+            rating,
+            comment: comment.trim() || null,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existingRatingId);
+
+        if (error) throw error;
+
+        toast({
+          title: "Rating updated!",
+          description: "Your rating has been updated successfully.",
         });
+      } else {
+        // Insert new rating
+        const { error } = await supabase
+          .from('business_ratings')
+          .insert({
+            rater_id: profile.id,
+            business_id: businessUser.id,
+            rating,
+            comment: comment.trim() || null
+          });
 
-      if (error) throw error;
+        if (error) throw error;
 
-      toast({
-        title: "Rating submitted!",
-        description: "Your rating has been saved successfully.",
-      });
+        toast({
+          title: "Rating submitted!",
+          description: "Your rating has been saved successfully.",
+        });
+      }
 
       onRatingSubmitted();
       onClose();
@@ -85,13 +142,24 @@ const RatingModal: React.FC<RatingModalProps> = ({
     }
   };
 
+  // Reset form when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setRating(0);
+      setComment('');
+      setExistingRatingId(null);
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl shadow-lg max-w-md w-full p-6">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-semibold text-gray-900">Rate Business</h2>
+          <h2 className="text-xl font-semibold text-gray-900">
+            {existingRatingId ? 'Update Rating' : 'Rate Business'}
+          </h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -148,7 +216,7 @@ const RatingModal: React.FC<RatingModalProps> = ({
             disabled={isSubmitting || rating === 0}
             className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isSubmitting ? 'Submitting...' : 'Submit Rating'}
+            {isSubmitting ? 'Submitting...' : existingRatingId ? 'Update Rating' : 'Submit Rating'}
           </button>
         </div>
       </div>
