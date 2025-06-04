@@ -120,6 +120,8 @@ export function useShortlists() {
 
     try {
       console.log('Fetching invitations for user:', profile.id);
+      
+      // First get the raw invitation data
       const { data: invitationData, error } = await supabase
         .from('shortlist_invitations')
         .select('*')
@@ -139,24 +141,40 @@ export function useShortlists() {
         return;
       }
 
-      // Fetch shortlist and inviter details
-      const shortlistIds = invitationData.map(inv => inv.shortlist_id);
-      const inviterIds = invitationData.map(inv => inv.inviter_id);
+      // Get unique shortlist and inviter IDs
+      const shortlistIds = [...new Set(invitationData.map(inv => inv.shortlist_id))];
+      const inviterIds = [...new Set(invitationData.map(inv => inv.inviter_id))];
 
-      const [shortlistResult, profileResult] = await Promise.all([
-        supabase.from('shortlists').select('*').in('id', shortlistIds),
-        supabase.from('profiles').select('id, name').in('id', inviterIds)
-      ]);
+      // Fetch shortlist details
+      const { data: shortlistsData, error: shortlistError } = await supabase
+        .from('shortlists')
+        .select('*')
+        .in('id', shortlistIds);
 
+      if (shortlistError) {
+        console.error('Error fetching shortlists:', shortlistError);
+      }
+
+      // Fetch inviter details
+      const { data: profilesData, error: profileError } = await supabase
+        .from('profiles')
+        .select('id, name')
+        .in('id', inviterIds);
+
+      if (profileError) {
+        console.error('Error fetching profiles:', profileError);
+      }
+
+      // Combine the data
       const formattedInvitations = invitationData.map(inv => {
-        const shortlist = shortlistResult.data?.find(s => s.id === inv.shortlist_id);
-        const inviter = profileResult.data?.find(p => p.id === inv.inviter_id);
+        const shortlist = shortlistsData?.find(s => s.id === inv.shortlist_id);
+        const inviter = profilesData?.find(p => p.id === inv.inviter_id);
         
         return {
           ...inv,
           status: inv.status as 'pending' | 'accepted' | 'rejected',
           shortlist,
-          inviter_name: inviter?.name
+          inviter_name: inviter?.name || 'Unknown User'
         };
       });
 
@@ -164,6 +182,7 @@ export function useShortlists() {
       setInvitations(formattedInvitations);
     } catch (error) {
       console.error('Error fetching invitations:', error);
+      setInvitations([]);
     }
   };
 
@@ -290,16 +309,18 @@ export function useShortlists() {
         .select('id, status')
         .eq('shortlist_id', shortlistId)
         .eq('invitee_id', inviteeId)
-        .single();
+        .maybeSingle();
 
-      if (checkError && checkError.code !== 'PGRST116') {
+      if (checkError) {
+        console.error('Error checking existing invitations:', checkError);
         throw checkError;
       }
 
       if (existingInvitation) {
         console.log('Invitation already exists:', existingInvitation);
         if (existingInvitation.status === 'pending') {
-          // Already has a pending invitation
+          // Already has a pending invitation, don't throw error
+          console.log('Invitation already pending');
           return;
         } else if (existingInvitation.status === 'rejected') {
           // Update existing rejected invitation to pending
@@ -313,8 +334,10 @@ export function useShortlists() {
             .eq('id', existingInvitation.id);
 
           if (updateError) throw updateError;
+          console.log('Updated rejected invitation to pending');
         } else {
-          // Already accepted
+          // Already accepted, don't send again
+          console.log('Invitation already accepted');
           return;
         }
       } else {
@@ -324,10 +347,12 @@ export function useShortlists() {
           .insert({
             shortlist_id: shortlistId,
             inviter_id: profile.id,
-            invitee_id: inviteeId
+            invitee_id: inviteeId,
+            status: 'pending'
           });
 
         if (error) throw error;
+        console.log('New invitation created');
       }
 
       console.log('Invitation sent successfully');

@@ -56,7 +56,8 @@ const ShortlistInviteModal: React.FC<ShortlistInviteModalProps> = ({
     setIsLoading(true);
     try {
       await inviteToShortlist(shortlistId, connectionId);
-      // Update local status to show as invited
+      
+      // Immediately update local status to show as pending
       setInvitationStatuses(prev => ({
         ...prev,
         [connectionId]: 'pending'
