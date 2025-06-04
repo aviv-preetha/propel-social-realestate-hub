@@ -30,57 +30,63 @@ const ShortlistInviteModal: React.FC<ShortlistInviteModalProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [invitingUsers, setInvitingUsers] = useState<Set<string>>(new Set());
 
-  const fetchInvitationStatuses = async () => {
-    if (!isOpen || !connections.length || !shortlistId) {
-      setInvitationStatuses({});
-      return;
-    }
-    
-    console.log('Fetching invitation statuses for shortlist:', shortlistId);
-    console.log('Connections:', connections);
-    
-    try {
-      // Get all invitations for this shortlist
-      const { data: invitations, error } = await supabase
-        .from('shortlist_invitations')
-        .select('invitee_id, status')
-        .eq('shortlist_id', shortlistId);
-
-      if (error) {
-        console.error('Error fetching invitations:', error);
+  useEffect(() => {
+    const fetchStatuses = async () => {
+      if (!isOpen || !shortlistId || !connections.length) {
+        console.log('Not fetching - modal closed, no shortlist, or no connections');
         return;
       }
 
-      console.log('Raw invitations from DB:', invitations);
+      console.log('=== FETCHING INVITATION STATUSES ===');
+      console.log('Shortlist ID:', shortlistId);
+      console.log('Connections count:', connections.length);
+      console.log('Connection IDs:', connections.map(c => c.id));
 
-      // Create status map
-      const statuses: {[key: string]: string} = {};
-      
-      // Initialize all connections as not_invited
-      connections.forEach(connection => {
-        statuses[connection.id] = 'not_invited';
-      });
+      try {
+        const { data: invitations, error } = await supabase
+          .from('shortlist_invitations')
+          .select('invitee_id, status')
+          .eq('shortlist_id', shortlistId);
 
-      // Update with actual invitation statuses
-      if (invitations) {
-        invitations.forEach(invitation => {
-          statuses[invitation.invitee_id] = invitation.status;
+        if (error) {
+          console.error('Error fetching invitations:', error);
+          return;
+        }
+
+        console.log('Raw invitations from DB:', invitations);
+
+        // Create status object - start with all connections as not_invited
+        const statusMap: {[key: string]: string} = {};
+        
+        connections.forEach(connection => {
+          statusMap[connection.id] = 'not_invited';
+          console.log(`Initialized ${connection.name} (${connection.id}) as: not_invited`);
         });
+
+        // Update with actual invitation statuses
+        if (invitations && invitations.length > 0) {
+          invitations.forEach(invitation => {
+            if (statusMap.hasOwnProperty(invitation.invitee_id)) {
+              statusMap[invitation.invitee_id] = invitation.status;
+              console.log(`Updated ${invitation.invitee_id} to status: ${invitation.status}`);
+            } else {
+              console.log(`Invitation found for ${invitation.invitee_id} but not in connections list`);
+            }
+          });
+        }
+
+        console.log('Final status map:', statusMap);
+        setInvitationStatuses(statusMap);
+        
+      } catch (error) {
+        console.error('Error in fetchStatuses:', error);
       }
+    };
 
-      console.log('Final statuses:', statuses);
-      setInvitationStatuses(statuses);
-    } catch (error) {
-      console.error('Error in fetchInvitationStatuses:', error);
-    }
-  };
-
-  useEffect(() => {
     if (isOpen) {
-      // Reset statuses first
+      // Clear previous statuses and fetch fresh ones
       setInvitationStatuses({});
-      // Then fetch fresh statuses
-      fetchInvitationStatuses();
+      fetchStatuses();
     }
   }, [isOpen, shortlistId, connections]);
 
@@ -91,7 +97,7 @@ const ShortlistInviteModal: React.FC<ShortlistInviteModalProps> = ({
     try {
       await inviteToShortlist(shortlistId, connectionId);
       
-      // Set status to pending immediately
+      // Immediately update to pending
       setInvitationStatuses(prev => ({
         ...prev,
         [connectionId]: 'pending'
@@ -101,16 +107,10 @@ const ShortlistInviteModal: React.FC<ShortlistInviteModalProps> = ({
         title: "Invitation sent!",
         description: "Your invitation has been sent successfully",
       });
-
-      // Refresh statuses after a short delay to ensure DB consistency
-      setTimeout(() => {
-        fetchInvitationStatuses();
-      }, 1000);
       
     } catch (error: any) {
       console.error('Error inviting user:', error);
       
-      // Check if it's a duplicate invitation error
       if (error?.code === '23505' || error?.message?.includes('already exists')) {
         setInvitationStatuses(prev => ({
           ...prev,
@@ -147,11 +147,11 @@ const ShortlistInviteModal: React.FC<ShortlistInviteModalProps> = ({
     });
   };
 
-  const getButtonContent = (connectionId: string) => {
-    const status = invitationStatuses[connectionId];
-    const isCurrentlyInviting = invitingUsers.has(connectionId);
+  const getButtonForConnection = (connection: any) => {
+    const status = invitationStatuses[connection.id];
+    const isCurrentlyInviting = invitingUsers.has(connection.id);
     
-    console.log(`Button for ${connectionId}: status=${status}, inviting=${isCurrentlyInviting}`);
+    console.log(`Rendering button for ${connection.name} (${connection.id}): status=${status}, inviting=${isCurrentlyInviting}`);
     
     if (isCurrentlyInviting) {
       return (
@@ -186,7 +186,7 @@ const ShortlistInviteModal: React.FC<ShortlistInviteModalProps> = ({
         return (
           <Button
             size="sm"
-            onClick={() => handleInviteUser(connectionId)}
+            onClick={() => handleInviteUser(connection.id)}
             disabled={isLoading}
             className="bg-blue-600 hover:bg-blue-700 text-white"
           >
@@ -232,7 +232,7 @@ const ShortlistInviteModal: React.FC<ShortlistInviteModalProps> = ({
                       <p className="font-medium">{connection.name}</p>
                       <p className="text-sm text-gray-600">{connection.location}</p>
                     </div>
-                    {getButtonContent(connection.id)}
+                    {getButtonForConnection(connection)}
                   </div>
                 ))}
               </div>
