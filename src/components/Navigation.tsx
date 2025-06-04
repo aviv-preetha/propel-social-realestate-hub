@@ -2,7 +2,6 @@
 import React, { useState } from 'react';
 import { Home, Users, Building, User, ChevronDown, LogOut } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import NotificationsDropdown from './NotificationsDropdown';
 
 interface NavigationProps {
   activeTab: string;
@@ -37,7 +36,6 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }) => {
     <nav className="bg-white shadow-sm border-b sticky top-0 z-50">
       <div className="max-w-6xl mx-auto px-4">
         <div className="flex items-center justify-between h-16">
-          {/* Logo */}
           <div className="flex items-center space-x-2">
             <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-blue-800 rounded-lg flex items-center justify-center">
               <Building className="h-6 w-6 text-white" />
@@ -45,8 +43,7 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }) => {
             <h1 className="text-xl font-bold text-gray-900">PropelMau</h1>
           </div>
           
-          {/* Center Navigation */}
-          <div className="flex space-x-1">
+          <div className="flex space-x-1 relative">
             {navItems.map((item) => {
               const Icon = item.icon;
               return (
@@ -64,11 +61,6 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }) => {
                 </button>
               );
             })}
-          </div>
-
-          {/* Right Side - Notifications and Profile */}
-          <div className="flex items-center space-x-4">
-            <NotificationsDropdown />
             
             {/* Profile dropdown */}
             <div className="relative">
