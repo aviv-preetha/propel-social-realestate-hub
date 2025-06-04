@@ -558,18 +558,21 @@ const Profile: React.FC = () => {
           <p className="text-gray-600 text-center">Connections</p>
         </div>
 
-        <div 
-          className={`bg-white rounded-xl shadow-sm border p-6 cursor-pointer transition-all duration-200 ${
-            activeSection === 'posts' ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:shadow-md'
-          }`}
-          onClick={() => handleSectionToggle('posts')}
-        >
-          <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mb-3 mx-auto">
-            <FileText className="h-6 w-6 text-orange-600" />
+        {/* Only show Posts section if not a business user OR if business user has posts */}
+        {(!isBusiness || userPostsCount > 0) && (
+          <div 
+            className={`bg-white rounded-xl shadow-sm border p-6 cursor-pointer transition-all duration-200 ${
+              activeSection === 'posts' ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:shadow-md'
+            }`}
+            onClick={() => handleSectionToggle('posts')}
+          >
+            <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mb-3 mx-auto">
+              <FileText className="h-6 w-6 text-orange-600" />
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900 text-center">{userPostsCount}</h3>
+            <p className="text-gray-600 text-center">Posts</p>
           </div>
-          <h3 className="text-2xl font-bold text-gray-900 text-center">{userPostsCount}</h3>
-          <p className="text-gray-600 text-center">Posts</p>
-        </div>
+        )}
       </div>
 
       {/* Business Reviews Section */}
