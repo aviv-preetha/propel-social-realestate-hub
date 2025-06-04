@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { UserPlus, Users, MessageCircle, Star, Check, Clock } from 'lucide-react';
 import UserBadge from './UserBadge';
@@ -126,19 +125,19 @@ const Network: React.FC = () => {
           />
           <div className="flex-1">
             <div className="flex items-center space-x-2 mb-2">
-              <h3 className="text-lg font-semibold text-gray-900">{user.name}</h3>
+              <h3 className="text-lg font-semibold text-gray-900 text-left">{user.name}</h3>
               <UserBadge badge={user.badge} />
-              {ratingStats && ratingStats.totalRatings > 0 && (
-                <div className="flex items-center space-x-1">
-                  <StarRating rating={ratingStats.averageRating} readonly size="sm" />
-                  <span className="text-xs text-gray-500">({ratingStats.totalRatings})</span>
-                </div>
-              )}
             </div>
-            <p className="text-gray-600 mb-2">{user.location}</p>
-            <p className="text-gray-700 text-sm leading-relaxed">{user.description}</p>
+            {ratingStats && ratingStats.totalRatings > 0 && (
+              <div className="flex items-center space-x-1 mb-2">
+                <StarRating rating={ratingStats.averageRating} readonly size="sm" />
+                <span className="text-xs text-gray-500">({ratingStats.totalRatings})</span>
+              </div>
+            )}
+            <p className="text-gray-600 mb-2 text-left">{user.location}</p>
+            <p className="text-gray-700 text-sm leading-relaxed text-left">{user.description}</p>
             {user.listing_preference && (
-              <p className="text-blue-600 text-sm mt-2 font-medium">
+              <p className="text-blue-600 text-sm mt-2 font-medium text-left">
                 Preference: {user.listing_preference}
               </p>
             )}
