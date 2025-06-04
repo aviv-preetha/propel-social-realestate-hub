@@ -681,14 +681,14 @@ const Profile: React.FC = () => {
                     <div className="space-y-2">
                       <button
                         onClick={() => handleViewProperties(shortlist.id)}
-                        className="w-full bg-primary text-primary-foreground px-4 py-2 rounded-2xl text-sm hover:bg-primary/90 transition-colors"
+                        className="w-full bg-primary text-primary-foreground px-4 py-2 rounded-3xl text-sm hover:bg-primary/90 transition-colors"
                       >
                         View Properties
                       </button>
                       
                       <button
                         onClick={() => handleShareShortlist(shortlist)}
-                        className="w-full bg-gray-100 text-gray-700 px-4 py-2 rounded-2xl text-sm hover:bg-gray-200 transition-colors flex items-center justify-center space-x-2"
+                        className="w-full bg-gray-100 text-gray-700 px-4 py-2 rounded-3xl text-sm hover:bg-gray-200 transition-colors flex items-center justify-center space-x-2"
                       >
                         <Share2 className="h-4 w-4" />
                         <span>Share</span>
