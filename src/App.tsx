@@ -11,6 +11,7 @@ import Feed from "./components/Feed";
 import Profile from "./components/Profile";
 import Network from "./components/Network";
 import Properties from "./components/Properties";
+import ShortlistsManager from "./components/ShortlistsManager";
 import { Toaster } from "@/components/ui/toaster";
 import "./App.css";
 
@@ -45,6 +46,8 @@ const App = () => {
         return <Network />;
       case 'properties':
         return <Properties />;
+      case 'shortlists':
+        return <ShortlistsManager />;
       case 'profile':
         return <Profile />;
       default:
