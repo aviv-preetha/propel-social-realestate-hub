@@ -23,8 +23,6 @@ export function useNotifications() {
   useEffect(() => {
     if (user) {
       fetchNotifications();
-      const cleanup = subscribeToNotifications();
-      return cleanup;
     } else {
       setNotifications([]);
       setUnreadCount(0);
@@ -58,36 +56,6 @@ export function useNotifications() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const subscribeToNotifications = () => {
-    if (!user) return () => {};
-
-    const channel = supabase
-      .channel(`notifications-${user.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${user.id}`
-        },
-        (payload) => {
-          console.log('New notification received:', payload);
-          const newNotification = {
-            ...payload.new,
-            type: payload.new.type as 'like' | 'comment' | 'mention'
-          } as Notification;
-          setNotifications(prev => [newNotification, ...prev]);
-          setUnreadCount(prev => prev + 1);
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
   };
 
   const markAsRead = async (notificationId: string) => {

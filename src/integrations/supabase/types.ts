@@ -434,16 +434,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      create_notification: {
-        Args: {
-          notification_user_id: string
-          notification_type: string
-          notification_related_user_id: string
-          notification_post_id: string
-          notification_comment_id?: string
-        }
-        Returns: string
-      }
+      [_ in never]: never
     }
     Enums: {
       [_ in never]: never
