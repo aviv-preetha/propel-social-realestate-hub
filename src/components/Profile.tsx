@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Edit, MapPin, Heart, Star, Building, Camera, MessageSquare, FileText } from 'lucide-react';
 import { useProfile } from '@/hooks/useProfile';
@@ -33,7 +32,6 @@ const parseListingPreference = (preference: string | undefined): ListingPreferen
   
   try {
     const parsed = JSON.parse(preference);
-    // Check if it's the new format with structured data
     if (parsed.types || parsed.minSize !== undefined) {
       return parsed;
     }
@@ -282,7 +280,7 @@ const Profile: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         {(isOwner || isBusiness) && (
           <div 
-            className={`bg-white rounded-xl shadow-sm border p-6 text-left cursor-pointer transition-all duration-200 ${
+            className={`bg-white rounded-xl shadow-sm border p-6 cursor-pointer transition-all duration-200 ${
               activeSection === 'properties' ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:shadow-md'
             }`}
             onClick={() => handleSectionToggle('properties')}
@@ -297,7 +295,7 @@ const Profile: React.FC = () => {
         
         {isSeeker && (
           <div 
-            className={`bg-white rounded-xl shadow-sm border p-6 text-left cursor-pointer transition-all duration-200 ${
+            className={`bg-white rounded-xl shadow-sm border p-6 cursor-pointer transition-all duration-200 ${
               activeSection === 'shortlisted' ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:shadow-md'
             }`}
             onClick={() => handleSectionToggle('shortlisted')}
@@ -312,7 +310,7 @@ const Profile: React.FC = () => {
 
         {isBusiness && (
           <div 
-            className={`bg-white rounded-xl shadow-sm border p-6 text-left cursor-pointer transition-all duration-200 ${
+            className={`bg-white rounded-xl shadow-sm border p-6 cursor-pointer transition-all duration-200 ${
               activeSection === 'reviews' ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:shadow-md'
             }`}
             onClick={() => handleSectionToggle('reviews')}
@@ -328,7 +326,7 @@ const Profile: React.FC = () => {
         )}
         
         <div 
-          className={`bg-white rounded-xl shadow-sm border p-6 text-left cursor-pointer transition-all duration-200 ${
+          className={`bg-white rounded-xl shadow-sm border p-6 cursor-pointer transition-all duration-200 ${
             activeSection === 'connections' ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:shadow-md'
           }`}
           onClick={() => handleSectionToggle('connections')}
@@ -341,7 +339,7 @@ const Profile: React.FC = () => {
         </div>
 
         <div 
-          className={`bg-white rounded-xl shadow-sm border p-6 text-left cursor-pointer transition-all duration-200 ${
+          className={`bg-white rounded-xl shadow-sm border p-6 cursor-pointer transition-all duration-200 ${
             activeSection === 'posts' ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:shadow-md'
           }`}
           onClick={() => handleSectionToggle('posts')}

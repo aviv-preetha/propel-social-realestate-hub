@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
-import { Heart, MessageCircle, Share, Send, MoreHorizontal, Edit, Trash2 } from 'lucide-react';
+import { Heart, MessageCircle, Share, Send, MoreHorizontal, Edit, Trash2, Plus } from 'lucide-react';
 import { usePosts } from '@/hooks/usePosts';
 import { useProfile } from '@/hooks/useProfile';
 import { useConnections } from '@/hooks/useConnections';
@@ -8,6 +7,9 @@ import { supabase } from '@/integrations/supabase/client';
 import UserBadge from './UserBadge';
 import UserMention from './UserMention';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from './ui/carousel';
+import { Card, CardContent } from './ui/card';
+import { Textarea } from './ui/textarea';
+import { Button } from './ui/button';
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -38,7 +40,7 @@ interface ProfileData {
 }
 
 const UserPosts: React.FC<UserPostsProps> = ({ userId }) => {
-  const { posts, toggleLike, addComment, updatePost, deletePost } = usePosts();
+  const { posts, toggleLike, addComment, updatePost, deletePost, createPost } = usePosts();
   const { profile } = useProfile();
   const { connections } = useConnections();
   const [newComments, setNewComments] = useState<Record<string, string>>({});
@@ -46,9 +48,14 @@ const UserPosts: React.FC<UserPostsProps> = ({ userId }) => {
   const [taggedUsers, setTaggedUsers] = useState<Record<string, string[]>>({});
   const [editingPost, setEditingPost] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
+  const [showCreatePost, setShowCreatePost] = useState(false);
+  const [newPostContent, setNewPostContent] = useState('');
 
   // Filter posts by the user
   const userPosts = posts.filter(post => post.userId === userId);
+
+  // Check if current user is viewing their own profile
+  const isOwnProfile = profile?.id === userId;
 
   const getUserById = async (userId: string): Promise<ProfileData> => {
     // Check cache first
@@ -113,6 +120,14 @@ const UserPosts: React.FC<UserPostsProps> = ({ userId }) => {
       }
     });
   }, [userPosts, profileCache]);
+
+  const handleCreatePost = async () => {
+    if (!newPostContent.trim()) return;
+    
+    await createPost(newPostContent.trim());
+    setNewPostContent('');
+    setShowCreatePost(false);
+  };
 
   const handleCommentSubmit = async (postId: string) => {
     const content = newComments[postId]?.trim();
@@ -203,264 +218,338 @@ const UserPosts: React.FC<UserPostsProps> = ({ userId }) => {
     return updatedAt > createdAt + 1000; // Allow 1 second difference for database timing
   };
 
-  if (userPosts.length === 0) {
+  if (userPosts.length === 0 && !isOwnProfile) {
     return (
       <div className="p-8 text-center">
         <MessageCircle className="h-12 w-12 text-gray-300 mx-auto mb-4" />
         <h3 className="text-lg font-medium text-gray-600 mb-2">No posts yet</h3>
-        <p className="text-gray-500">This user hasn't shared any posts</p>
+        <p className="text-gray-500">
+          {isOwnProfile ? "Share your first post!" : "This user hasn't shared any posts"}
+        </p>
       </div>
     );
   }
 
   return (
     <div className="p-6">
-      <div className="space-y-6">
-        {userPosts.map((post) => {
-          const author = profileCache[post.userId];
-          
-          if (!author) {
-            return (
-              <div key={post.id} className="bg-white rounded-xl shadow-sm border p-6">
-                <p className="text-gray-500">Loading post...</p>
-              </div>
-            );
-          }
-
-          const isLiked = profile ? post.likes.includes(profile.id) : false;
-          const isAuthor = profile?.id === post.userId;
-
-          return (
-            <div key={post.id} className="bg-white rounded-xl shadow-sm border">
-              {/* Post Header */}
-              <div className="p-6 pb-4">
+      {/* Create Post Section - Only show for own profile */}
+      {isOwnProfile && (
+        <div className="mb-6">
+          {!showCreatePost ? (
+            <Card className="p-4">
+              <CardContent className="p-0">
+                <button
+                  onClick={() => setShowCreatePost(true)}
+                  className="w-full flex items-center space-x-3 text-left text-gray-500 hover:text-gray-700 transition-colors"
+                >
+                  <img
+                    src={profile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile?.name}`}
+                    alt={profile?.name}
+                    className="w-10 h-10 rounded-full object-cover"
+                  />
+                  <span className="flex-1 py-3 px-4 bg-gray-50 rounded-full">What's on your mind?</span>
+                  <Plus className="h-5 w-5" />
+                </button>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="p-4">
+              <CardContent className="p-0 space-y-4">
                 <div className="flex items-start space-x-3">
                   <img
-                    src={author.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${author.name}`}
-                    alt={author.name}
-                    className="w-12 h-12 rounded-full object-cover"
+                    src={profile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile?.name}`}
+                    alt={profile?.name}
+                    className="w-10 h-10 rounded-full object-cover"
                   />
                   <div className="flex-1">
-                    <div className="flex items-center space-x-2">
-                      <h3 className="font-semibold text-gray-900">{author.name}</h3>
-                      <UserBadge badge={author.badge} />
-                      <span className="text-gray-500 text-sm">•</span>
-                      <p className="text-gray-500 text-sm">{formatTimestamp(post.timestamp)}</p>
-                      {isPostEdited(post) && (
-                        <>
-                          <span className="text-gray-500 text-sm">•</span>
-                          <span className="text-gray-400 text-xs italic">edited</span>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                  {isAuthor ? (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <button className="text-gray-400 hover:text-gray-600">
-                          <MoreHorizontal className="h-5 w-5" />
-                        </button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleEditPost(post.id, post.content)}>
-                          <Edit className="h-4 w-4 mr-2" />
-                          Edit
-                        </DropdownMenuItem>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <DropdownMenuItem 
-                              className="text-red-600 focus:text-red-600 focus:bg-red-50"
-                              onSelect={(e) => e.preventDefault()}
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Delete
-                            </DropdownMenuItem>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Delete Post</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Are you sure you want to delete this post? This action cannot be undone.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction 
-                                onClick={() => handleDeletePost(post.id)}
-                                className="bg-red-600 hover:bg-red-700"
-                              >
-                                Delete
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  ) : (
-                    <button className="text-gray-400 hover:text-gray-600">
-                      <MoreHorizontal className="h-5 w-5" />
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Post Content */}
-              <div className="px-6 pb-4">
-                {editingPost === post.id ? (
-                  <div className="space-y-2">
-                    <textarea
-                      value={editContent}
-                      onChange={(e) => setEditContent(e.target.value)}
-                      className="w-full p-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-left min-h-[100px]"
-                      placeholder="Edit your post..."
+                    <Textarea
+                      value={newPostContent}
+                      onChange={(e) => setNewPostContent(e.target.value)}
+                      placeholder="What's on your mind?"
+                      className="min-h-[100px] resize-none"
                     />
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => handleSaveEdit(post.id)}
-                        className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
-                      >
-                        Save
-                      </button>
-                      <button
-                        onClick={handleCancelEdit}
-                        className="px-3 py-1 bg-gray-300 text-gray-700 rounded text-sm hover:bg-gray-400"
-                      >
-                        Cancel
-                      </button>
-                    </div>
                   </div>
-                ) : (
-                  <p className="text-gray-800 leading-relaxed text-left">{renderTextWithMentions(post.content)}</p>
-                )}
-              </div>
+                </div>
+                <div className="flex justify-end space-x-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowCreatePost(false);
+                      setNewPostContent('');
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleCreatePost}
+                    disabled={!newPostContent.trim()}
+                  >
+                    Post
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
 
-              {/* Post Images */}
-              {post.images && post.images.length > 0 && (
-                <div className="px-6 pb-4">
-                  {post.images.length === 1 ? (
+      {/* Posts List */}
+      {userPosts.length === 0 ? (
+        <div className="p-8 text-center">
+          <MessageCircle className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-600 mb-2">No posts yet</h3>
+          <p className="text-gray-500">
+            {isOwnProfile ? "Share your first post!" : "This user hasn't shared any posts"}
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {userPosts.map((post) => {
+            const author = profileCache[post.userId];
+            
+            if (!author) {
+              return (
+                <div key={post.id} className="bg-white rounded-xl shadow-sm border p-6">
+                  <p className="text-gray-500">Loading post...</p>
+                </div>
+              );
+            }
+
+            const isLiked = profile ? post.likes.includes(profile.id) : false;
+            const isAuthor = profile?.id === post.userId;
+
+            return (
+              <div key={post.id} className="bg-white rounded-xl shadow-sm border">
+                {/* Post Header */}
+                <div className="p-6 pb-4">
+                  <div className="flex items-start space-x-3">
                     <img
-                      src={post.images[0]}
-                      alt=""
-                      className="w-full h-64 object-cover rounded-lg"
+                      src={author.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${author.name}`}
+                      alt={author.name}
+                      className="w-12 h-12 rounded-full object-cover"
                     />
-                  ) : (
-                    <Carousel className="w-full">
-                      <CarouselContent>
-                        {post.images.map((image, index) => (
-                          <CarouselItem key={index}>
-                            <img
-                              src={image}
-                              alt=""
-                              className="w-full h-64 object-cover rounded-lg"
-                            />
-                          </CarouselItem>
-                        ))}
-                      </CarouselContent>
-                      <CarouselPrevious className="left-2" />
-                      <CarouselNext className="right-2" />
-                    </Carousel>
-                  )}
-                </div>
-              )}
-
-              {/* Post Actions */}
-              <div className="px-6 py-4 border-t border-gray-100">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-6">
-                    <button
-                      onClick={() => toggleLike(post.id)}
-                      className={`flex items-center space-x-2 ${
-                        isLiked 
-                          ? 'text-red-600 hover:text-red-700' 
-                          : 'text-gray-600 hover:text-gray-700'
-                      } transition-colors`}
-                    >
-                      <Heart className={`h-5 w-5 ${isLiked ? 'fill-current' : ''}`} />
-                      <span>{post.likes.length}</span>
-                    </button>
-                    <button className="flex items-center space-x-2 text-gray-600 hover:text-gray-700 transition-colors">
-                      <MessageCircle className="h-5 w-5" />
-                      <span>{post.comments.length}</span>
-                    </button>
-                    <button className="flex items-center space-x-2 text-gray-600 hover:text-gray-700 transition-colors">
-                      <Share className="h-5 w-5" />
-                      <span>Share</span>
-                    </button>
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2">
+                        <h3 className="font-semibold text-gray-900">{author.name}</h3>
+                        <UserBadge badge={author.badge} />
+                        <span className="text-gray-500 text-sm">•</span>
+                        <p className="text-gray-500 text-sm">{formatTimestamp(post.timestamp)}</p>
+                        {isPostEdited(post) && (
+                          <>
+                            <span className="text-gray-500 text-sm">•</span>
+                            <span className="text-gray-400 text-xs italic">edited</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    {isAuthor ? (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button className="text-gray-400 hover:text-gray-600">
+                            <MoreHorizontal className="h-5 w-5" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleEditPost(post.id, post.content)}>
+                            <Edit className="h-4 w-4 mr-2" />
+                            Edit
+                          </DropdownMenuItem>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <DropdownMenuItem 
+                                className="text-red-600 focus:text-red-600 focus:bg-red-50"
+                                onSelect={(e) => e.preventDefault()}
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete
+                              </DropdownMenuItem>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete Post</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to delete this post? This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction 
+                                  onClick={() => handleDeletePost(post.id)}
+                                  className="bg-red-600 hover:bg-red-700"
+                                >
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    ) : (
+                      <button className="text-gray-400 hover:text-gray-600">
+                        <MoreHorizontal className="h-5 w-5" />
+                      </button>
+                    )}
                   </div>
                 </div>
-              </div>
 
-              {/* Comments */}
-              {post.comments.length > 0 && (
-                <div className="px-6 pb-4 border-t border-gray-100">
-                  <div className="space-y-3 mt-4">
-                    {post.comments.map((comment) => {
-                      const commentAuthor = profileCache[comment.userId];
+                {/* Post Content */}
+                <div className="px-6 pb-4">
+                  {editingPost === post.id ? (
+                    <div className="space-y-2">
+                      <textarea
+                        value={editContent}
+                        onChange={(e) => setEditContent(e.target.value)}
+                        className="w-full p-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-left min-h-[100px]"
+                        placeholder="Edit your post..."
+                      />
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => handleSaveEdit(post.id)}
+                          className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
+                        >
+                          Save
+                        </button>
+                        <button
+                          onClick={handleCancelEdit}
+                          className="px-3 py-1 bg-gray-300 text-gray-700 rounded text-sm hover:bg-gray-400"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-gray-800 leading-relaxed text-left">{renderTextWithMentions(post.content)}</p>
+                  )}
+                </div>
 
-                      if (!commentAuthor) return null;
+                {/* Post Images */}
+                {post.images && post.images.length > 0 && (
+                  <div className="px-6 pb-4">
+                    {post.images.length === 1 ? (
+                      <img
+                        src={post.images[0]}
+                        alt=""
+                        className="w-full h-64 object-cover rounded-lg"
+                      />
+                    ) : (
+                      <Carousel className="w-full">
+                        <CarouselContent>
+                          {post.images.map((image, index) => (
+                            <CarouselItem key={index}>
+                              <img
+                                src={image}
+                                alt=""
+                                className="w-full h-64 object-cover rounded-lg"
+                              />
+                            </CarouselItem>
+                          ))}
+                        </CarouselContent>
+                        <CarouselPrevious className="left-2" />
+                        <CarouselNext className="right-2" />
+                      </Carousel>
+                    )}
+                  </div>
+                )}
 
-                      return (
-                        <div key={comment.id} className="flex space-x-3">
-                          <img
-                            src={commentAuthor.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${commentAuthor.name}`}
-                            alt={commentAuthor.name}
-                            className="w-8 h-8 rounded-full object-cover"
-                          />
-                          <div className="flex-1">
-                            <div className="bg-gray-50 rounded-lg p-3">
-                              <div className="flex items-center space-x-2 mb-1">
-                                <span className="font-medium text-sm">{commentAuthor.name}</span>
-                                <span className="text-xs text-gray-500">•</span>
-                                <span className="text-xs text-gray-500">
-                                  {formatTimestamp(comment.timestamp)}
-                                </span>
+                {/* Post Actions */}
+                <div className="px-6 py-4 border-t border-gray-100">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-6">
+                      <button
+                        onClick={() => toggleLike(post.id)}
+                        className={`flex items-center space-x-2 ${
+                          isLiked 
+                            ? 'text-red-600 hover:text-red-700' 
+                            : 'text-gray-600 hover:text-gray-700'
+                        } transition-colors`}
+                      >
+                        <Heart className={`h-5 w-5 ${isLiked ? 'fill-current' : ''}`} />
+                        <span>{post.likes.length}</span>
+                      </button>
+                      <button className="flex items-center space-x-2 text-gray-600 hover:text-gray-700 transition-colors">
+                        <MessageCircle className="h-5 w-5" />
+                        <span>{post.comments.length}</span>
+                      </button>
+                      <button className="flex items-center space-x-2 text-gray-600 hover:text-gray-700 transition-colors">
+                        <Share className="h-5 w-5" />
+                        <span>Share</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Comments */}
+                {post.comments.length > 0 && (
+                  <div className="px-6 pb-4 border-t border-gray-100">
+                    <div className="space-y-3 mt-4">
+                      {post.comments.map((comment) => {
+                        const commentAuthor = profileCache[comment.userId];
+
+                        if (!commentAuthor) return null;
+
+                        return (
+                          <div key={comment.id} className="flex space-x-3">
+                            <img
+                              src={commentAuthor.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${commentAuthor.name}`}
+                              alt={commentAuthor.name}
+                              className="w-8 h-8 rounded-full object-cover"
+                            />
+                            <div className="flex-1">
+                              <div className="bg-gray-50 rounded-lg p-3">
+                                <div className="flex items-center space-x-2 mb-1">
+                                  <span className="font-medium text-sm">{commentAuthor.name}</span>
+                                  <span className="text-xs text-gray-500">•</span>
+                                  <span className="text-xs text-gray-500">
+                                    {formatTimestamp(comment.timestamp)}
+                                  </span>
+                                </div>
+                                <p className="text-sm text-gray-800 text-left">{renderTextWithMentions(comment.content)}</p>
                               </div>
-                              <p className="text-sm text-gray-800 text-left">{renderTextWithMentions(comment.content)}</p>
                             </div>
                           </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* Comment Input */}
-              {profile && (
-                <div className="px-6 pb-6 border-t border-gray-100">
-                  <div className="flex space-x-3 mt-4">
-                    <img
-                      src={profile.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.name}`}
-                      alt={profile.name}
-                      className="w-8 h-8 rounded-full object-cover"
-                    />
-                    <div className="flex-1 flex space-x-2">
-                      <div className="flex-1">
-                        <UserMention
-                          value={newComments[post.id] || ''}
-                          onChange={(value) => setNewComments(prev => ({ 
-                            ...prev, 
-                            [post.id]: value 
-                          }))}
-                          onTagUser={(userId) => handleCommentTagUser(post.id, userId)}
-                          placeholder="Write a comment..."
-                          className="w-full px-3 py-1 border border-gray-300 rounded-full text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent text-left min-h-[32px]"
-                        />
-                      </div>
-                      <button
-                        onClick={() => handleCommentSubmit(post.id)}
-                        className="px-3 py-1 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors h-8 flex items-center justify-center"
-                      >
-                        <Send className="h-3 w-3" />
-                      </button>
+                        );
+                      })}
                     </div>
                   </div>
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
+                )}
+
+                {/* Comment Input */}
+                {profile && (
+                  <div className="px-6 pb-6 border-t border-gray-100">
+                    <div className="flex space-x-3 mt-4">
+                      <img
+                        src={profile.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.name}`}
+                        alt={profile.name}
+                        className="w-8 h-8 rounded-full object-cover"
+                      />
+                      <div className="flex-1 flex space-x-2">
+                        <div className="flex-1">
+                          <UserMention
+                            value={newComments[post.id] || ''}
+                            onChange={(value) => setNewComments(prev => ({ 
+                              ...prev, 
+                              [post.id]: value 
+                            }))}
+                            onTagUser={(userId) => handleCommentTagUser(post.id, userId)}
+                            placeholder="Write a comment..."
+                            className="w-full px-3 py-1 border border-gray-300 rounded-full text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent text-left min-h-[32px]"
+                          />
+                        </div>
+                        <button
+                          onClick={() => handleCommentSubmit(post.id)}
+                          className="px-3 py-1 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors h-8 flex items-center justify-center"
+                        >
+                          <Send className="h-3 w-3" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };
