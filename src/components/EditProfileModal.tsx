@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Profile } from '@/hooks/useProfile';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
+import ListingPreferencesForm from './ListingPreferencesForm';
 
 interface EditProfileModalProps {
   user: Profile;
@@ -9,6 +10,42 @@ interface EditProfileModalProps {
   onClose: () => void;
   onSave: (updatedUser: Partial<Profile>) => void;
 }
+
+interface ListingPreferences {
+  types: string[];
+  minSize: number;
+  maxSize: number;
+  minPrice: number;
+  maxPrice: number;
+  location: string;
+}
+
+const parseListingPreference = (preference: string | undefined): ListingPreferences => {
+  if (!preference) {
+    return {
+      types: [],
+      minSize: 10,
+      maxSize: 200,
+      minPrice: 500,
+      maxPrice: 5000,
+      location: ''
+    };
+  }
+
+  try {
+    return JSON.parse(preference);
+  } catch {
+    // Fallback for old text-based preferences
+    return {
+      types: [],
+      minSize: 10,
+      maxSize: 200,
+      minPrice: 500,
+      maxPrice: 5000,
+      location: preference
+    };
+  }
+};
 
 const EditProfileModal: React.FC<EditProfileModalProps> = ({ 
   user, 
@@ -20,19 +57,32 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
     name: user.name,
     description: user.description || '',
     location: user.location || '',
-    listing_preference: user.listing_preference || '',
     badge: user.badge
   });
 
+  const [listingPreferences, setListingPreferences] = useState<ListingPreferences>(
+    parseListingPreference(user.listing_preference)
+  );
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
+    
+    const updatedData = {
+      ...formData,
+      listing_preference: user.badge === 'seeker' 
+        ? JSON.stringify(listingPreferences)
+        : formData.listing_preference || user.listing_preference
+    };
+
+    onSave(updatedData);
     onClose();
   };
 
+  const isSeeker = user.badge === 'seeker';
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit Profile</DialogTitle>
         </DialogHeader>
@@ -90,18 +140,19 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Listing Preference
-            </label>
-            <input
-              type="text"
-              value={formData.listing_preference}
-              onChange={(e) => setFormData({ ...formData, listing_preference: e.target.value })}
-              placeholder="e.g., 2-3 bedrooms, near schools"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
+          {isSeeker && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-4">
+                Listing Preferences
+              </label>
+              <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                <ListingPreferencesForm
+                  preferences={listingPreferences}
+                  onChange={setListingPreferences}
+                />
+              </div>
+            </div>
+          )}
 
           <div className="flex justify-end space-x-3">
             <button

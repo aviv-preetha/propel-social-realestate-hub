@@ -17,6 +17,30 @@ import UserProperties from './UserProperties';
 import ShortlistedProperties from './ShortlistedProperties';
 import { useToast } from '@/hooks/use-toast';
 
+interface ListingPreferences {
+  types: string[];
+  minSize: number;
+  maxSize: number;
+  minPrice: number;
+  maxPrice: number;
+  location: string;
+}
+
+const parseListingPreference = (preference: string | undefined): ListingPreferences | null => {
+  if (!preference) return null;
+  
+  try {
+    const parsed = JSON.parse(preference);
+    // Check if it's the new format with structured data
+    if (parsed.types || parsed.minSize !== undefined) {
+      return parsed;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+};
+
 const Profile: React.FC = () => {
   const { user } = useAuth();
   const { profile, updateProfile } = useProfile();
@@ -84,6 +108,15 @@ const Profile: React.FC = () => {
     setActiveSection(activeSection === section ? null : section);
   };
 
+  const formatPrice = (price: number) => {
+    if (price >= 1000000) {
+      return `€${(price / 1000000).toFixed(1)}M`;
+    } else if (price >= 1000) {
+      return `€${(price / 1000).toFixed(0)}K`;
+    }
+    return `€${price}`;
+  };
+
   const ratingStats = profile.badge === 'business' ? getRatingStats(profile.id) : null;
   const isBusiness = profile.badge === 'business';
   const isOwner = profile.badge === 'owner';
@@ -91,6 +124,9 @@ const Profile: React.FC = () => {
 
   // Count properties owned by this user
   const userPropertiesCount = properties.filter(property => property.owner_id === profile.id).length;
+
+  // Parse listing preferences for seeker users
+  const listingPreferences = isSeeker ? parseListingPreference(profile.listing_preference) : null;
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -152,7 +188,40 @@ const Profile: React.FC = () => {
                 <p className="text-gray-700 leading-relaxed mb-4 text-left">
                   {profile.description || 'No description provided'}
                 </p>
-                {profile.listing_preference && !isBusiness && (
+                
+                {/* Display listing preferences for seeker users */}
+                {isSeeker && listingPreferences && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                    <p className="text-blue-800 font-medium text-sm mb-3 text-left">Listing Preferences:</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                      {listingPreferences.types.length > 0 && (
+                        <div>
+                          <span className="text-blue-700 font-medium">Type: </span>
+                          <span className="text-blue-600">
+                            {listingPreferences.types.map(type => type === 'rent' ? 'For Rent' : 'For Sale').join(', ')}
+                          </span>
+                        </div>
+                      )}
+                      <div>
+                        <span className="text-blue-700 font-medium">Size: </span>
+                        <span className="text-blue-600">{listingPreferences.minSize} - {listingPreferences.maxSize} m²</span>
+                      </div>
+                      <div>
+                        <span className="text-blue-700 font-medium">Price: </span>
+                        <span className="text-blue-600">{formatPrice(listingPreferences.minPrice)} - {formatPrice(listingPreferences.maxPrice)}</span>
+                      </div>
+                      {listingPreferences.location && (
+                        <div>
+                          <span className="text-blue-700 font-medium">Location: </span>
+                          <span className="text-blue-600">{listingPreferences.location}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Fallback for old text-based listing preference */}
+                {isSeeker && profile.listing_preference && !listingPreferences && (
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                     <p className="text-blue-800 font-medium text-sm text-left">Listing Preference:</p>
                     <p className="text-blue-700 text-sm text-left">{profile.listing_preference}</p>
@@ -246,7 +315,6 @@ const Profile: React.FC = () => {
         </div>
       )}
 
-      {/* Connections Section */}
       {activeSection === 'connections' && (
         <div className="bg-white rounded-xl shadow-sm border">
           <div className="p-6 border-b">
@@ -256,7 +324,6 @@ const Profile: React.FC = () => {
         </div>
       )}
 
-      {/* Properties Section - Only show for owners/business */}
       {(isOwner || isBusiness) && activeSection === 'properties' && (
         <div className="bg-white rounded-xl shadow-sm border">
           <div className="p-6 border-b">
@@ -266,7 +333,6 @@ const Profile: React.FC = () => {
         </div>
       )}
 
-      {/* Shortlisted Properties Section - Only show for seekers */}
       {isSeeker && activeSection === 'shortlisted' && (
         <div className="bg-white rounded-xl shadow-sm border">
           <div className="p-6 border-b">
