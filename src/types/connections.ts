@@ -3,7 +3,7 @@ export interface Profile {
   id: string;
   user_id: string;
   name: string;
-  email: string | null;
+  email?: string | null;
   avatar_url: string | null;
   description: string | null;
   badge: 'owner' | 'seeker' | 'business';
