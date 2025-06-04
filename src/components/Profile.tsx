@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Edit, MapPin, Heart, Star, Building, Camera, MessageSquare, FileText, List, X, Bed, Bath, Square } from 'lucide-react';
+import { Edit, MapPin, Heart, Star, Building, Camera, MessageSquare, FileText, List, X, Bed, Bath, Square, Share2, Plus } from 'lucide-react';
 import { useProfile } from '@/hooks/useProfile';
 import { useAuth } from '@/hooks/useAuth';
 import { useConnections } from '@/hooks/useConnections';
@@ -17,8 +17,13 @@ import UserConnections from './UserConnections';
 import UserProperties from './UserProperties';
 import ShortlistsManager from './ShortlistsManager';
 import UserPosts from './UserPosts';
+import PropertyModal from './PropertyModal';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Textarea } from './ui/textarea';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 
 interface ListingPreferences {
   types: string[];
@@ -50,12 +55,16 @@ const Profile: React.FC = () => {
   const { properties } = useProperties();
   const { fetchBusinessRatings, getRatingStats } = useBusinessRatings();
   const { posts } = usePosts();
-  const { shortlists } = useShortlists();
+  const { shortlists, createShortlist, updateShortlistSharing } = useShortlists();
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [activeSection, setActiveSection] = useState<'reviews' | 'connections' | 'properties' | 'shortlists' | 'posts' | null>(null);
   const [viewingShortlistProperties, setViewingShortlistProperties] = useState<string | null>(null);
   const [shortlistProperties, setShortlistProperties] = useState<any[]>([]);
+  const [selectedProperty, setSelectedProperty] = useState<any>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newShortlistName, setNewShortlistName] = useState('');
+  const [newShortlistDescription, setNewShortlistDescription] = useState('');
   const { toast } = useToast();
 
   // Fetch ratings if current user is a business
@@ -198,6 +207,48 @@ const Profile: React.FC = () => {
         variant: "destructive",
       });
     }
+  };
+
+  const handleRemovePropertyFromShortlist = async (propertyId: string) => {
+    if (!viewingShortlistProperties) return;
+
+    try {
+      const { error } = await supabase
+        .from('shortlist_properties')
+        .delete()
+        .eq('shortlist_id', viewingShortlistProperties)
+        .eq('property_id', propertyId);
+
+      if (error) throw error;
+
+      // Update local state
+      setShortlistProperties(prev => prev.filter(property => property.id !== propertyId));
+
+      toast({
+        title: "Property removed",
+        description: "Property has been removed from shortlist",
+      });
+    } catch (error) {
+      console.error('Error removing property:', error);
+      toast({
+        title: "Error",
+        description: "Failed to remove property from shortlist",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCreateShortlist = async () => {
+    if (!newShortlistName.trim()) return;
+    
+    await createShortlist(newShortlistName, newShortlistDescription);
+    setNewShortlistName('');
+    setNewShortlistDescription('');
+    setShowCreateModal(false);
+  };
+
+  const toggleSharing = async (shortlistId: string, currentSharing: boolean) => {
+    await updateShortlistSharing(shortlistId, !currentSharing);
   };
 
   // Count shortlists correctly
@@ -431,26 +482,50 @@ const Profile: React.FC = () => {
 
       {isSeeker && activeSection === 'shortlists' && (
         <div className="bg-white rounded-xl shadow-sm border">
-          <div className="p-6 border-b">
+          <div className="p-6 border-b flex items-center justify-between">
             <h2 className="text-xl font-semibold text-gray-900">My Shortlists</h2>
+            <Button onClick={() => setShowCreateModal(true)} className="flex items-center space-x-2">
+              <Plus className="h-4 w-4" />
+              <span>Create Shortlist</span>
+            </Button>
           </div>
           <div className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {shortlists.map((shortlist) => (
                 <div key={shortlist.id} className="p-4 border rounded-lg bg-gray-50">
-                  <h3 className="font-semibold text-lg mb-2">{shortlist.name}</h3>
-                  {shortlist.description && (
-                    <p className="text-gray-600 text-sm mb-2">{shortlist.description}</p>
-                  )}
-                  <p className="text-sm text-gray-500 mb-3">
-                    {shortlist.property_count || 0} properties
-                  </p>
-                  <button
-                    onClick={() => handleViewProperties(shortlist.id)}
-                    className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 transition-colors"
-                  >
-                    View Properties
-                  </button>
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-lg mb-2">{shortlist.name}</h3>
+                      {shortlist.description && (
+                        <p className="text-gray-600 text-sm mb-2">{shortlist.description}</p>
+                      )}
+                      <p className="text-sm text-gray-500 mb-3">
+                        {shortlist.property_count || 0} properties
+                      </p>
+                    </div>
+                    {shortlist.is_shared && (
+                      <div className="flex items-center text-blue-600 ml-2">
+                        <Share2 className="h-4 w-4" />
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <button
+                      onClick={() => handleViewProperties(shortlist.id)}
+                      className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 transition-colors"
+                    >
+                      View Properties
+                    </button>
+                    
+                    <button
+                      onClick={() => toggleSharing(shortlist.id, shortlist.is_shared)}
+                      className="w-full bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-200 transition-colors flex items-center justify-center space-x-2"
+                    >
+                      <Share2 className="h-4 w-4" />
+                      <span>{shortlist.is_shared ? 'Disable Sharing' : 'Enable Sharing'}</span>
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -487,20 +562,34 @@ const Profile: React.FC = () => {
                     <div key={property.id} className="border rounded-lg p-4 bg-gray-50">
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex-1">
-                          <h3 className="font-semibold text-lg">{property.title}</h3>
+                          <h3 
+                            className="font-semibold text-lg cursor-pointer hover:text-blue-600 transition-colors"
+                            onClick={() => setSelectedProperty(property)}
+                          >
+                            {property.title}
+                          </h3>
                           <p className="text-gray-600 text-sm">{property.location}</p>
                           <p className="text-xl font-bold text-blue-600 mt-2">
                             €{property.price?.toLocaleString()}
                             {property.type === 'rent' && <span className="text-sm text-gray-500">/month</span>}
                           </p>
                         </div>
-                        {property.images && property.images[0] && (
-                          <img
-                            src={property.images[0]}
-                            alt={property.title}
-                            className="w-20 h-20 object-cover rounded-lg ml-4"
-                          />
-                        )}
+                        <div className="flex flex-col items-end space-y-2">
+                          {property.images && property.images[0] && (
+                            <img
+                              src={property.images[0]}
+                              alt={property.title}
+                              className="w-20 h-20 object-cover rounded-lg cursor-pointer"
+                              onClick={() => setSelectedProperty(property)}
+                            />
+                          )}
+                          <button
+                            onClick={() => handleRemovePropertyFromShortlist(property.id)}
+                            className="text-red-600 hover:text-red-700 text-sm font-medium"
+                          >
+                            Remove
+                          </button>
+                        </div>
                       </div>
                       <div className="flex items-center space-x-4 text-sm text-gray-600 mb-3">
                         <div className="flex items-center">
@@ -516,7 +605,12 @@ const Profile: React.FC = () => {
                           <span>{property.area}m²</span>
                         </div>
                       </div>
-                      <p className="text-gray-600 text-sm line-clamp-2">{property.description}</p>
+                      <p 
+                        className="text-gray-600 text-sm line-clamp-2 cursor-pointer hover:text-gray-800"
+                        onClick={() => setSelectedProperty(property)}
+                      >
+                        {property.description}
+                      </p>
                     </div>
                   ))}
                 </div>
@@ -526,6 +620,44 @@ const Profile: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Create Shortlist Modal */}
+      <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create New Shortlist</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Input
+              placeholder="Shortlist name"
+              value={newShortlistName}
+              onChange={(e) => setNewShortlistName(e.target.value)}
+            />
+            <Textarea
+              placeholder="Description (optional)"
+              value={newShortlistDescription}
+              onChange={(e) => setNewShortlistDescription(e.target.value)}
+              rows={3}
+            />
+            <Button
+              onClick={handleCreateShortlist}
+              disabled={!newShortlistName.trim()}
+              className="w-full"
+            >
+              Create Shortlist
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Property Detail Modal */}
+      {selectedProperty && (
+        <PropertyModal
+          property={selectedProperty}
+          isOpen={!!selectedProperty}
+          onClose={() => setSelectedProperty(null)}
+        />
       )}
 
       <EditProfileModal
