@@ -4,6 +4,7 @@ import { Search, Filter, MapPin, Heart, Building, Bed, Bath, Square } from 'luci
 import { useProperties } from '@/hooks/useProperties';
 import { useProfile } from '@/hooks/useProfile';
 import PropertyModal from './PropertyModal';
+import GeneratePropertiesButton from './GeneratePropertiesButton';
 
 const Properties: React.FC = () => {
   const { properties, loading, toggleShortlist, isShortlisted } = useProperties();
@@ -85,13 +86,17 @@ const Properties: React.FC = () => {
             </div>
           </div>
         </div>
+        
+        <div className="mt-4">
+          <GeneratePropertiesButton />
+        </div>
       </div>
 
       {filteredProperties.length === 0 ? (
         <div className="bg-white rounded-xl shadow-sm border p-8 text-center">
           <Building className="h-12 w-12 text-gray-300 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-600 mb-2">No properties found</h3>
-          <p className="text-gray-500">Try adjusting your search criteria</p>
+          <p className="text-gray-500">Try adjusting your search criteria or generate sample properties</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -157,7 +162,7 @@ const Properties: React.FC = () => {
                   </div>
                   <div className="flex items-center">
                     <Square className="h-4 w-4 mr-1" />
-                    <span>{property.area} sqft</span>
+                    <span>{property.area} m²</span>
                   </div>
                 </div>
               </div>
