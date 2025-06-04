@@ -1,14 +1,17 @@
 
+
 export interface Profile {
   id: string;
   user_id: string;
   name: string;
   email?: string | null;
-  avatar_url: string | null;
-  description: string | null;
+  avatar_url?: string | null;
+  description?: string | null;
   badge: 'owner' | 'seeker' | 'business';
-  location: string | null;
-  listing_preference: string | null;
+  location?: string | null;
+  listing_preference?: string | null;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface Connection {
@@ -20,3 +23,4 @@ export interface Connection {
 }
 
 export type ConnectionStatus = 'none' | 'pending' | 'received' | 'connected';
+
