@@ -3,7 +3,6 @@ import React, { useState } from 'react';
 import { Input } from './ui/input';
 import { Checkbox } from './ui/checkbox';
 import { Slider } from './ui/slider';
-import { FormItem, FormLabel, FormControl } from './ui/form';
 
 interface ListingPreferences {
   types: string[];
@@ -73,8 +72,8 @@ const ListingPreferencesForm: React.FC<ListingPreferencesFormProps> = ({
 
   return (
     <div className="space-y-6">
-      <FormItem>
-        <FormLabel>Property Type</FormLabel>
+      <div className="space-y-2">
+        <label className="block text-sm font-medium text-gray-700">Property Type</label>
         <div className="flex flex-col space-y-3">
           <div className="flex items-center space-x-2">
             <Checkbox
@@ -93,10 +92,10 @@ const ListingPreferencesForm: React.FC<ListingPreferencesFormProps> = ({
             <label htmlFor="sale" className="text-sm font-medium">For Sale</label>
           </div>
         </div>
-      </FormItem>
+      </div>
 
-      <FormItem>
-        <FormLabel>Property Size (m²)</FormLabel>
+      <div className="space-y-2">
+        <label className="block text-sm font-medium text-gray-700">Property Size (m²)</label>
         <div className="px-3">
           <Slider
             value={sizeRange}
@@ -111,10 +110,10 @@ const ListingPreferencesForm: React.FC<ListingPreferencesFormProps> = ({
             <span>{sizeRange[1]} m²</span>
           </div>
         </div>
-      </FormItem>
+      </div>
 
-      <FormItem>
-        <FormLabel>Price Range</FormLabel>
+      <div className="space-y-2">
+        <label className="block text-sm font-medium text-gray-700">Price Range</label>
         <div className="px-3">
           <Slider
             value={priceRange}
@@ -129,20 +128,18 @@ const ListingPreferencesForm: React.FC<ListingPreferencesFormProps> = ({
             <span>{formatPrice(priceRange[1])}</span>
           </div>
         </div>
-      </FormItem>
+      </div>
 
-      <FormItem>
-        <FormLabel>Preferred Location</FormLabel>
-        <FormControl>
-          <Input
-            type="text"
-            value={preferences.location}
-            onChange={(e) => handleLocationChange(e.target.value)}
-            placeholder="e.g., Paris, London, New York..."
-            className="w-full"
-          />
-        </FormControl>
-      </FormItem>
+      <div className="space-y-2">
+        <label className="block text-sm font-medium text-gray-700">Preferred Location</label>
+        <Input
+          type="text"
+          value={preferences.location}
+          onChange={(e) => handleLocationChange(e.target.value)}
+          placeholder="e.g., Paris, London, New York..."
+          className="w-full"
+        />
+      </div>
     </div>
   );
 };
