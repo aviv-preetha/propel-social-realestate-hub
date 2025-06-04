@@ -132,8 +132,8 @@ const Profile: React.FC = () => {
           
           <div className="flex-1">
             <div className="flex items-start justify-between">
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900 mb-3">{profile.name}</h1>
+              <div className="text-left">
+                <h1 className="text-3xl font-bold text-gray-900 mb-3 text-left">{profile.name}</h1>
                 <div className="flex items-center gap-3 mb-4">
                   <UserBadge badge={profile.badge} size="md" />
                   {ratingStats && ratingStats.totalRatings > 0 && (
@@ -154,8 +154,8 @@ const Profile: React.FC = () => {
                 </p>
                 {profile.listing_preference && !isBusiness && (
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                    <p className="text-blue-800 font-medium text-sm">Listing Preference:</p>
-                    <p className="text-blue-700 text-sm">{profile.listing_preference}</p>
+                    <p className="text-blue-800 font-medium text-sm text-left">Listing Preference:</p>
+                    <p className="text-blue-700 text-sm text-left">{profile.listing_preference}</p>
                   </div>
                 )}
               </div>
