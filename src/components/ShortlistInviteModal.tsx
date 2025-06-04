@@ -22,6 +22,7 @@ const ShortlistInviteModal: React.FC<ShortlistInviteModalProps> = ({
   shortlistName,
   shareToken
 }) => {
+  console.log("ShortlistInviteModal");
   const { connections } = useConnections();
   const { inviteToShortlist, checkInvitationStatus } = useShortlists();
   const { toast } = useToast();
@@ -49,6 +50,7 @@ const ShortlistInviteModal: React.FC<ShortlistInviteModalProps> = ({
       setInvitationStatuses(statuses);
     };
 
+    console.log("fetchInvitationStatuses");
     fetchInvitationStatuses();
   }, [isOpen, connections, shortlistId, checkInvitationStatus]);
 
