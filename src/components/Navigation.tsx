@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Home, Users, Building, User, ChevronDown, LogOut } from 'lucide-react';
+import { Newspaper, Users, Building, User, ChevronDown, LogOut } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import NotificationsDropdown from './NotificationsDropdown';
 
@@ -14,9 +14,9 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }) => {
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
 
   const navItems = [
-    { id: 'home', label: 'Home', icon: Home },
-    { id: 'network', label: 'Network', icon: Users },
     { id: 'properties', label: 'Properties', icon: Building },
+    { id: 'home', label: 'Home', icon: Newspaper },
+    { id: 'network', label: 'Network', icon: Users },
   ];
 
   const handleSignOut = async () => {
