@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Users, Eye, Heart, X } from 'lucide-react';
+import { Plus, Users, Eye, Heart, X, Copy, Check, UserPlus } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
@@ -10,21 +10,22 @@ import { useConnections } from '@/hooks/useConnections';
 import { useProperties } from '@/hooks/useProperties';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import ShortlistInviteModal from './ShortlistInviteModal';
 
 const ShortlistsManager: React.FC = () => {
-  const { shortlists, invitations, createShortlist, respondToInvitation, updateShortlistSharing, refetch } = useShortlists();
+  const { shortlists, invitations, createShortlist, respondToInvitation, updateShortlistSharing, refetch, inviteToShortlist, checkInvitationStatus } = useShortlists();
   const { connections } = useConnections();
   const { properties } = useProperties();
   const { toast } = useToast();
   
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   const [selectedShortlist, setSelectedShortlist] = useState<{id: string, name: string, shareToken: string} | null>(null);
   const [newShortlistName, setNewShortlistName] = useState('');
   const [newShortlistDescription, setNewShortlistDescription] = useState('');
   const [viewingShortlistId, setViewingShortlistId] = useState<string | null>(null);
   const [shortlistProperties, setShortlistProperties] = useState<{[key: string]: any[]}>({});
+  const [invitationStatuses, setInvitationStatuses] = useState<{[key: string]: {[key: string]: string}}>({});
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     const fetchShortlistProperties = async () => {
@@ -76,6 +77,28 @@ const ShortlistsManager: React.FC = () => {
     }
   }, [shortlists]);
 
+  // Fetch invitation statuses for a specific shortlist
+  const fetchInvitationStatuses = async (shortlistId: string) => {
+    if (!connections.length) return;
+    
+    const statuses: {[key: string]: string} = {};
+    
+    for (const connection of connections) {
+      try {
+        const status = await checkInvitationStatus(shortlistId, connection.id);
+        statuses[connection.id] = status;
+      } catch (error) {
+        console.error('Error checking invitation status:', error);
+        statuses[connection.id] = 'not_invited';
+      }
+    }
+    
+    setInvitationStatuses(prev => ({
+      ...prev,
+      [shortlistId]: statuses
+    }));
+  };
+
   const handleCreateShortlist = async () => {
     if (!newShortlistName.trim()) return;
     
@@ -87,7 +110,6 @@ const ShortlistsManager: React.FC = () => {
 
   const handleShareClick = (shortlist: any) => {
     if (!shortlist.is_shared) {
-      // Enable sharing first
       updateShortlistSharing(shortlist.id, true);
     }
     
@@ -96,7 +118,98 @@ const ShortlistsManager: React.FC = () => {
       name: shortlist.name,
       shareToken: shortlist.share_token
     });
-    setShowInviteModal(true);
+    setShowShareModal(true);
+    
+    // Fetch invitation statuses when opening share modal
+    fetchInvitationStatuses(shortlist.id);
+  };
+
+  const handleInviteUser = async (connectionId: string) => {
+    if (!selectedShortlist) return;
+    
+    setIsLoading(true);
+    try {
+      await inviteToShortlist(selectedShortlist.id, connectionId);
+      
+      // Refresh invitation statuses after successful invite
+      await fetchInvitationStatuses(selectedShortlist.id);
+      
+      toast({
+        title: "Invitation sent!",
+        description: "Your invitation has been sent successfully",
+      });
+    } catch (error: any) {
+      console.error('Error inviting user:', error);
+      
+      if (error?.code === '23505' || error?.message?.includes('already exists')) {
+        // Refresh statuses even for duplicate invitations
+        await fetchInvitationStatuses(selectedShortlist.id);
+        toast({
+          title: "Already invited",
+          description: "This user has already been invited to this shortlist",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to send invitation",
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const copyShareLink = () => {
+    if (!selectedShortlist) return;
+    const shareUrl = `${window.location.origin}/shortlist/shared/${selectedShortlist.shareToken}`;
+    navigator.clipboard.writeText(shareUrl);
+    toast({
+      title: "Link copied!",
+      description: "Share link has been copied to clipboard",
+    });
+  };
+
+  const getButtonContent = (connectionId: string) => {
+    if (!selectedShortlist) return null;
+    
+    const status = invitationStatuses[selectedShortlist.id]?.[connectionId];
+    
+    switch (status) {
+      case 'pending':
+        return (
+          <Button size="sm" disabled className="bg-yellow-100 text-yellow-800 border border-yellow-300">
+            <Check className="h-4 w-4 mr-1" />
+            Invited
+          </Button>
+        );
+      case 'accepted':
+        return (
+          <Button size="sm" disabled className="bg-green-100 text-green-800 border border-green-300">
+            <Check className="h-4 w-4 mr-1" />
+            Joined
+          </Button>
+        );
+      case 'rejected':
+        return (
+          <Button size="sm" disabled className="bg-red-100 text-red-800 border border-red-300">
+            Declined
+          </Button>
+        );
+      default:
+        return (
+          <Button
+            size="sm"
+            onClick={() => handleInviteUser(connectionId)}
+            disabled={isLoading}
+            className="bg-blue-600 hover:bg-blue-700 text-white"
+          >
+            <UserPlus className="h-4 w-4 mr-1" />
+            Invite
+          </Button>
+        );
+    }
   };
 
   const removePropertyFromShortlist = async (shortlistId: string, propertyId: string) => {
@@ -303,18 +416,55 @@ const ShortlistsManager: React.FC = () => {
         ))}
       </div>
 
-      {/* Invite Modal */}
+      {/* Share Modal */}
       {selectedShortlist && (
-        <ShortlistInviteModal
-          isOpen={showInviteModal}
-          onClose={() => {
-            setShowInviteModal(false);
-            setSelectedShortlist(null);
-          }}
-          shortlistId={selectedShortlist.id}
-          shortlistName={selectedShortlist.name}
-          shareToken={selectedShortlist.shareToken}
-        />
+        <Dialog open={showShareModal} onOpenChange={setShowShareModal}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Share "{selectedShortlist.name}"</DialogTitle>
+            </DialogHeader>
+            
+            <div className="space-y-6">
+              {/* Copy Link Section */}
+              <div className="space-y-3">
+                <h3 className="font-medium">Share with anyone</h3>
+                <Button
+                  onClick={copyShareLink}
+                  variant="outline"
+                  className="w-full"
+                >
+                  <Copy className="h-4 w-4 mr-2" />
+                  Copy Share Link
+                </Button>
+              </div>
+
+              {/* Invite Connections Section */}
+              <div className="space-y-3">
+                <h3 className="font-medium">Invite your connections</h3>
+                {connections.length > 0 ? (
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {connections.map((connection) => (
+                      <div
+                        key={connection.id}
+                        className="flex items-center justify-between p-3 border rounded-lg"
+                      >
+                        <div className="flex-1">
+                          <p className="font-medium">{connection.name}</p>
+                          <p className="text-sm text-gray-600">{connection.location}</p>
+                        </div>
+                        {getButtonContent(connection.id)}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-500 text-center py-4">
+                    No connections available to invite
+                  </p>
+                )}
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );
